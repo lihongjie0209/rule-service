@@ -1,0 +1,544 @@
+basePath: /
+definitions:
+  buildinfo.Info:
+    properties:
+      build_time:
+        type: string
+      commit:
+        type: string
+      started_at:
+        type: string
+      uptime:
+        type: string
+      version:
+        type: string
+    type: object
+  health.Dependency:
+    properties:
+      latency:
+        type: string
+      status:
+        type: string
+    type: object
+  health.Status:
+    properties:
+      dependencies:
+        additionalProperties:
+          $ref: '#/definitions/health.Dependency'
+        type: object
+      status:
+        type: string
+    type: object
+  httptransport.CreateRuleSetRequest:
+    properties:
+      code:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      tenant_id:
+        type: string
+    type: object
+  httptransport.CreateRuleVersionRequest:
+    properties:
+      definition:
+        type: object
+      idempotency_key:
+        type: string
+      rule_set_id:
+        type: string
+      tenant_id:
+        type: string
+    type: object
+  httptransport.EvaluateRequest:
+    properties:
+      facts:
+        type: object
+      rule_set_code:
+        type: string
+      rule_set_id:
+        type: string
+      tenant_id:
+        type: string
+      version_number:
+        type: integer
+    type: object
+  httptransport.GetRuleSetRequest:
+    properties:
+      code:
+        type: string
+      id:
+        type: string
+      tenant_id:
+        type: string
+    type: object
+  httptransport.ListRuleVersionsRequest:
+    properties:
+      page:
+        type: integer
+      page_size:
+        type: integer
+      rule_set_id:
+        type: string
+      status:
+        type: string
+      tenant_id:
+        type: string
+    type: object
+  httptransport.MeResponseBody:
+    properties:
+      subject:
+        type: string
+    type: object
+  httptransport.PageRequest:
+    properties:
+      keyword:
+        type: string
+      page:
+        type: integer
+      page_size:
+        type: integer
+      status:
+        type: string
+      tenant_id:
+        type: string
+    type: object
+  httptransport.PublishRuleVersionRequest:
+    properties:
+      rule_set_id:
+        type: string
+      rule_set_version:
+        type: integer
+      rule_version_id:
+        type: string
+      rule_version_version:
+        type: integer
+      tenant_id:
+        type: string
+    type: object
+  httptransport.Response:
+    properties:
+      body: {}
+      code:
+        type: integer
+      message:
+        type: string
+      request_id:
+        type: string
+    type: object
+  httptransport.RuleSetView:
+    properties:
+      code:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      published_version_number:
+        type: integer
+      status:
+        type: string
+      tenant_id:
+        type: string
+      updated_at:
+        type: string
+      updated_by:
+        type: string
+      version:
+        type: integer
+    type: object
+  httptransport.RuleVersionView:
+    properties:
+      checksum:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: string
+      definition:
+        type: object
+      id:
+        type: string
+      published_at:
+        type: string
+      rule_set_id:
+        type: string
+      status:
+        type: string
+      tenant_id:
+        type: string
+      updated_at:
+        type: string
+      updated_by:
+        type: string
+      version:
+        type: integer
+      version_number:
+        type: integer
+    type: object
+  httptransport.UpdateRuleSetRequest:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+      tenant_id:
+        type: string
+      version:
+        type: integer
+    type: object
+  httptransport.ValidateRuleVersionRequest:
+    properties:
+      definition:
+        type: object
+      tenant_id:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: 'Production-oriented Go Web API scaffold. Application error codes:
+    0 success; 10000-19999 common/input; 20000-29999 authentication/authorization;
+    30000-39999 business; 50000-59999 infrastructure.'
+  title: Go API Template
+  version: "1.0"
+paths:
+  /api/v1/me:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httptransport.Response'
+            - properties:
+                body:
+                  $ref: '#/definitions/httptransport.MeResponseBody'
+              type: object
+        "401":
+          description: 'Code 20001: unauthorized'
+          schema:
+            $ref: '#/definitions/httptransport.Response'
+      security:
+      - Bearer: []
+      summary: Return the authenticated subject
+      tags:
+      - authentication
+  /api/v1/rule-sets/create:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Rule set
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/httptransport.CreateRuleSetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httptransport.Response'
+            - properties:
+                body:
+                  $ref: '#/definitions/httptransport.RuleSetView'
+              type: object
+      security:
+      - Bearer: []
+      - PSK: []
+      summary: Create a rule set
+      tags:
+      - rules
+  /api/v1/rule-sets/get:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Rule set selector
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/httptransport.GetRuleSetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/httptransport.Response'
+      security:
+      - Bearer: []
+      - PSK: []
+      summary: Get a rule set and its published version
+      tags:
+      - rules
+  /api/v1/rule-sets/list:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Search and pagination
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/httptransport.PageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/httptransport.Response'
+      security:
+      - Bearer: []
+      - PSK: []
+      summary: List rule sets
+      tags:
+      - rules
+  /api/v1/rule-sets/update:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Rule set update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/httptransport.UpdateRuleSetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httptransport.Response'
+            - properties:
+                body:
+                  $ref: '#/definitions/httptransport.RuleSetView'
+              type: object
+      security:
+      - Bearer: []
+      - PSK: []
+      summary: Update a rule set with optimistic locking
+      tags:
+      - rules
+  /api/v1/rule-versions/create:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Rule definition
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/httptransport.CreateRuleVersionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httptransport.Response'
+            - properties:
+                body:
+                  $ref: '#/definitions/httptransport.RuleVersionView'
+              type: object
+      security:
+      - Bearer: []
+      - PSK: []
+      summary: Create an immutable draft rule version
+      tags:
+      - rule versions
+  /api/v1/rule-versions/list:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Rule version search
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/httptransport.ListRuleVersionsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/httptransport.Response'
+      security:
+      - Bearer: []
+      - PSK: []
+      summary: List rule versions
+      tags:
+      - rule versions
+  /api/v1/rule-versions/publish:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Publish versions
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/httptransport.PublishRuleVersionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/httptransport.Response'
+      security:
+      - Bearer: []
+      - PSK: []
+      summary: Publish a rule version
+      tags:
+      - rule versions
+  /api/v1/rule-versions/validate:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Rule definition
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/httptransport.ValidateRuleVersionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/httptransport.Response'
+      security:
+      - Bearer: []
+      - PSK: []
+      summary: Validate a rule definition without persisting it
+      tags:
+      - rule versions
+  /api/v1/rules/evaluate:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Evaluation facts
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/httptransport.EvaluateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/httptransport.Response'
+      security:
+      - Bearer: []
+      - PSK: []
+      summary: Evaluate a published rule version
+      tags:
+      - rule evaluation
+  /api/v1/version:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httptransport.Response'
+            - properties:
+                body:
+                  $ref: '#/definitions/buildinfo.Info'
+              type: object
+      summary: Return build and runtime version information
+      tags:
+      - operations
+  /live:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httptransport.Response'
+            - properties:
+                body:
+                  $ref: '#/definitions/health.Status'
+              type: object
+      summary: Check process liveness
+      tags:
+      - operations
+  /ready:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httptransport.Response'
+            - properties:
+                body:
+                  $ref: '#/definitions/health.Status'
+              type: object
+        "503":
+          description: 'Code 50003: dependency unavailable'
+          schema:
+            allOf:
+            - $ref: '#/definitions/httptransport.Response'
+            - properties:
+                body:
+                  $ref: '#/definitions/health.Status'
+              type: object
+      summary: Check database and Redis readiness
+      tags:
+      - operations
+schemes:
+- http
+- https
+securityDefinitions:
+  Bearer:
+    description: Enter "Bearer {JWT}".
+    in: header
+    name: Authorization
+    type: apiKey
+  PSK:
+    description: Enter "PSK {shared-key}" for routes configured with PSK authentication.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

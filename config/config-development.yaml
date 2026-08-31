@@ -1,0 +1,25 @@
+# Local development is intentionally self-contained and keeps optional
+# infrastructure disabled until explicitly enabled through APP_* variables.
+app:
+  env: development
+database:
+  enabled: false
+  name: platform
+  schema: rule_service
+redis:
+  enabled: false
+migration:
+  auto_up: false
+log:
+  level: debug
+  format: text
+swagger:
+  enabled: true
+grpc:
+  reflection_enabled: true
+# Development may use the local HMAC fallback; platform deployments should
+# point this at identity-service.
+auth:
+  jwks_url: ""
+  issuer: identity-service
+  audience: rule-service
