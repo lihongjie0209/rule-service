@@ -46,7 +46,7 @@ jobs:
         run: go run github.com/swaggo/swag/cmd/swag@v1.16.6 init -g cmd/api/main.go -o docs --parseInternal && git diff --exit-code -- docs
       - name: Verify central contract dependency
         run: |
-          test "$(go list -m -f '{{.Version}}' github.com/lihongjie0209/platform-protos)" = "v0.15.0"
+          test "$(go list -m -f '{{.Version}}' github.com/lihongjie0209/platform-protos)" = "v0.26.0"
           test ! -d proto
           test ! -d gen
       - name: Validate Kubernetes manifests
