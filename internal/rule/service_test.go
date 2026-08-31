@@ -102,6 +102,24 @@ func TestServiceRuleLifecycleAndEvaluation(t *testing.T) {
 	if !evaluation.Matched || evaluation.MatchedRule != "vip" || evaluation.ResultJSON != `{"discount":20}` || evaluatedVersion.VersionNumber != 1 {
 		t.Fatalf("evaluation = %+v version=%+v", evaluation, evaluatedVersion)
 	}
+	batch, err := service.BatchEvaluate(ctx, []EvaluationInput{
+		{TenantID: "tenant-1", RuleSetID: set.ID, FactsJSON: `{"vip":true}`},
+		{TenantID: "tenant-2", RuleSetID: set.ID, FactsJSON: `{"vip":false}`},
+	})
+	if err != nil || len(batch) != 2 || batch[0].Err != nil || !batch[0].Evaluation.Matched || batch[1].Err == nil {
+		t.Fatalf("batch = %+v, err = %v", batch, err)
+	}
+}
+
+func TestBatchEvaluateRejectsInvalidSize(t *testing.T) {
+	t.Parallel()
+	service := &Service{}
+	if _, err := service.BatchEvaluate(t.Context(), nil); err == nil {
+		t.Fatal("empty batch accepted")
+	}
+	if _, err := service.BatchEvaluate(t.Context(), make([]EvaluationInput, 101)); err == nil {
+		t.Fatal("oversized batch accepted")
+	}
 }
 
 func TestServiceRejectsCrossTenantAccess(t *testing.T) {

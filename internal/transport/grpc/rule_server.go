@@ -72,15 +72,22 @@ func (s *ruleServer) Evaluate(ctx context.Context, request *rulev1.EvaluateReque
 	return &rulev1.EvaluateResponse{Matched: evaluation.Matched, MatchedRule: evaluation.MatchedRule, ResultJson: evaluation.ResultJSON, EvaluatedVersionNumber: version.VersionNumber, Checksum: version.Checksum}, ruleError(err)
 }
 func (s *ruleServer) BatchEvaluate(ctx context.Context, request *rulev1.BatchEvaluateRequest) (*rulev1.BatchEvaluateResponse, error) {
-	if len(request.GetRequests()) == 0 || len(request.GetRequests()) > 100 {
-		return nil, status.Error(codes.InvalidArgument, "requests must contain between 1 and 100 items")
-	}
-	results := make([]*rulev1.BatchEvaluateResult, len(request.GetRequests()))
+	inputs := make([]rule.EvaluationInput, len(request.GetRequests()))
 	for index, item := range request.GetRequests() {
-		response, err := s.Evaluate(ctx, item)
-		result := &rulev1.BatchEvaluateResult{Index: int32(index), Response: response}
-		if err != nil {
-			result.ErrorCode, result.ErrorMessage = status.Code(err).String(), status.Convert(err).Message()
+		inputs[index] = rule.EvaluationInput{TenantID: item.GetTenantId(), RuleSetID: item.GetRuleSetId(), RuleSetCode: item.GetRuleSetCode(), VersionNumber: item.GetVersionNumber(), FactsJSON: item.GetFactsJson()}
+	}
+	evaluations, err := s.service.BatchEvaluate(ctx, inputs)
+	if err != nil {
+		return nil, ruleError(err)
+	}
+	results := make([]*rulev1.BatchEvaluateResult, len(evaluations))
+	for index, evaluation := range evaluations {
+		result := &rulev1.BatchEvaluateResult{Index: int32(evaluation.Index)}
+		if evaluation.Err != nil {
+			mapped := ruleError(evaluation.Err)
+			result.ErrorCode, result.ErrorMessage = status.Code(mapped).String(), status.Convert(mapped).Message()
+		} else {
+			result.Response = &rulev1.EvaluateResponse{Matched: evaluation.Evaluation.Matched, MatchedRule: evaluation.Evaluation.MatchedRule, ResultJson: evaluation.Evaluation.ResultJSON, EvaluatedVersionNumber: evaluation.Version.VersionNumber, Checksum: evaluation.Version.Checksum}
 		}
 		results[index] = result
 	}

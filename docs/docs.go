@@ -462,6 +462,65 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/rules/evaluate-batch": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    },
+                    {
+                        "PSK": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "rule evaluation"
+                ],
+                "summary": "Evaluate up to 100 rule requests",
+                "parameters": [
+                    {
+                        "description": "Evaluation batch",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/httptransport.BatchEvaluateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/httptransport.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "body": {
+                                            "$ref": "#/definitions/httptransport.BatchEvaluateResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Code 10001: batch size must be between 1 and 100",
+                        "schema": {
+                            "$ref": "#/definitions/httptransport.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/version": {
             "post": {
                 "produces": [
@@ -620,6 +679,45 @@ const docTemplate = `{
                 }
             }
         },
+        "httptransport.BatchEvaluateRequest": {
+            "type": "object",
+            "properties": {
+                "requests": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/httptransport.EvaluateRequest"
+                    }
+                }
+            }
+        },
+        "httptransport.BatchEvaluateResponse": {
+            "type": "object",
+            "properties": {
+                "results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/httptransport.BatchEvaluateResult"
+                    }
+                }
+            }
+        },
+        "httptransport.BatchEvaluateResult": {
+            "type": "object",
+            "properties": {
+                "error_code": {
+                    "type": "integer"
+                },
+                "error_message": {
+                    "type": "string"
+                },
+                "index": {
+                    "type": "integer"
+                },
+                "response": {
+                    "$ref": "#/definitions/httptransport.EvaluateResponse"
+                }
+            }
+        },
         "httptransport.CreateRuleSetRequest": {
             "type": "object",
             "properties": {
@@ -671,6 +769,26 @@ const docTemplate = `{
                 },
                 "version_number": {
                     "type": "integer"
+                }
+            }
+        },
+        "httptransport.EvaluateResponse": {
+            "type": "object",
+            "properties": {
+                "checksum": {
+                    "type": "string"
+                },
+                "evaluated_version_number": {
+                    "type": "integer"
+                },
+                "matched": {
+                    "type": "boolean"
+                },
+                "matched_rule": {
+                    "type": "string"
+                },
+                "result": {
+                    "type": "object"
                 }
             }
         },

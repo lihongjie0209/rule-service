@@ -29,6 +29,31 @@ definitions:
       status:
         type: string
     type: object
+  httptransport.BatchEvaluateRequest:
+    properties:
+      requests:
+        items:
+          $ref: '#/definitions/httptransport.EvaluateRequest'
+        type: array
+    type: object
+  httptransport.BatchEvaluateResponse:
+    properties:
+      results:
+        items:
+          $ref: '#/definitions/httptransport.BatchEvaluateResult'
+        type: array
+    type: object
+  httptransport.BatchEvaluateResult:
+    properties:
+      error_code:
+        type: integer
+      error_message:
+        type: string
+      index:
+        type: integer
+      response:
+        $ref: '#/definitions/httptransport.EvaluateResponse'
+    type: object
   httptransport.CreateRuleSetRequest:
     properties:
       code:
@@ -63,6 +88,19 @@ definitions:
         type: string
       version_number:
         type: integer
+    type: object
+  httptransport.EvaluateResponse:
+    properties:
+      checksum:
+        type: string
+      evaluated_version_number:
+        type: integer
+      matched:
+        type: boolean
+      matched_rule:
+        type: string
+      result:
+        type: object
     type: object
   httptransport.GetRuleSetRequest:
     properties:
@@ -465,6 +503,39 @@ paths:
       - Bearer: []
       - PSK: []
       summary: Evaluate a published rule version
+      tags:
+      - rule evaluation
+  /api/v1/rules/evaluate-batch:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Evaluation batch
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/httptransport.BatchEvaluateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httptransport.Response'
+            - properties:
+                body:
+                  $ref: '#/definitions/httptransport.BatchEvaluateResponse'
+              type: object
+        "400":
+          description: 'Code 10001: batch size must be between 1 and 100'
+          schema:
+            $ref: '#/definitions/httptransport.Response'
+      security:
+      - Bearer: []
+      - PSK: []
+      summary: Evaluate up to 100 rule requests
       tags:
       - rule evaluation
   /api/v1/version:

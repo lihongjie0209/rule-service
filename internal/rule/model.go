@@ -41,6 +41,21 @@ type Page[T any] struct {
 	PageSize int   `json:"page_size"`
 }
 
+type EvaluationInput struct {
+	TenantID      string
+	RuleSetID     string
+	RuleSetCode   string
+	VersionNumber int64
+	FactsJSON     string
+}
+
+type BatchEvaluationResult struct {
+	Index      int
+	Evaluation Evaluation
+	Version    RuleVersion
+	Err        error
+}
+
 type OutboxEvent struct {
 	ID          string
 	Subject     string

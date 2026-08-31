@@ -2,6 +2,7 @@ package httptransport
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -167,6 +168,25 @@ type EvaluateRequest struct {
 	RuleSetCode   string          `json:"rule_set_code"`
 	VersionNumber int64           `json:"version_number"`
 	Facts         json.RawMessage `json:"facts" swaggertype:"object"`
+}
+type BatchEvaluateRequest struct {
+	Requests []EvaluateRequest `json:"requests"`
+}
+type EvaluateResponse struct {
+	Matched                bool            `json:"matched"`
+	MatchedRule            string          `json:"matched_rule"`
+	Result                 json.RawMessage `json:"result" swaggertype:"object"`
+	EvaluatedVersionNumber int64           `json:"evaluated_version_number"`
+	Checksum               string          `json:"checksum"`
+}
+type BatchEvaluateResult struct {
+	Index        int               `json:"index"`
+	Response     *EvaluateResponse `json:"response,omitempty"`
+	ErrorCode    int               `json:"error_code,omitempty"`
+	ErrorMessage string            `json:"error_message,omitempty"`
+}
+type BatchEvaluateResponse struct {
+	Results []BatchEvaluateResult `json:"results"`
 }
 
 func bind(c *gin.Context, target any) bool {
@@ -399,7 +419,55 @@ func (h *Handler) Evaluate(c *gin.Context) {
 		Fail(c, h.logger, e)
 		return
 	}
-	OK(c, gin.H{"matched": v.Matched, "matched_rule": v.MatchedRule, "result": json.RawMessage(v.ResultJSON), "evaluated_version_number": version.VersionNumber, "checksum": version.Checksum})
+	OK(c, evaluationResponse(v, version))
+}
+
+// BatchEvaluate godoc
+// @Summary Evaluate up to 100 rule requests
+// @Tags rule evaluation
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Security PSK
+// @Param request body BatchEvaluateRequest true "Evaluation batch"
+// @Success 200 {object} Response{body=BatchEvaluateResponse}
+// @Failure 400 {object} Response "Code 10001: batch size must be between 1 and 100"
+// @Router /api/v1/rules/evaluate-batch [post]
+func (h *Handler) BatchEvaluate(c *gin.Context) {
+	var request BatchEvaluateRequest
+	if !bind(c, &request) {
+		return
+	}
+	inputs := make([]rule.EvaluationInput, len(request.Requests))
+	for index, item := range request.Requests {
+		inputs[index] = rule.EvaluationInput{TenantID: item.TenantID, RuleSetID: item.RuleSetID, RuleSetCode: item.RuleSetCode, VersionNumber: item.VersionNumber, FactsJSON: string(item.Facts)}
+	}
+	results, err := h.rules.BatchEvaluate(c.Request.Context(), inputs)
+	if err != nil {
+		Fail(c, h.logger, err)
+		return
+	}
+	response := BatchEvaluateResponse{Results: make([]BatchEvaluateResult, len(results))}
+	for index, result := range results {
+		item := BatchEvaluateResult{Index: result.Index}
+		if result.Err == nil {
+			value := evaluationResponse(result.Evaluation, result.Version)
+			item.Response = &value
+		} else {
+			var appErr *apperror.Error
+			if errors.As(result.Err, &appErr) {
+				item.ErrorCode, item.ErrorMessage = appErr.Code, appErr.Message
+			} else {
+				item.ErrorCode, item.ErrorMessage = apperror.CodeInternal, "internal server error"
+			}
+		}
+		response.Results[index] = item
+	}
+	OK(c, response)
+}
+
+func evaluationResponse(value rule.Evaluation, version rule.RuleVersion) EvaluateResponse {
+	return EvaluateResponse{Matched: value.Matched, MatchedRule: value.MatchedRule, Result: json.RawMessage(value.ResultJSON), EvaluatedVersionNumber: version.VersionNumber, Checksum: version.Checksum}
 }
 
 // CreateUser godoc

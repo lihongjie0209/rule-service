@@ -69,6 +69,7 @@ func NewServer(lc fx.Lifecycle, cfg config.Config, handler *Handler, authService
 	api.POST("/rule-versions/publish", handler.PublishRuleVersion)
 	api.POST("/rule-versions/list", handler.ListRuleVersions)
 	api.POST("/rules/evaluate", handler.Evaluate)
+	api.POST("/rules/evaluate-batch", handler.BatchEvaluate)
 	server := &http.Server{Addr: cfg.HTTP.Address, Handler: router, ReadTimeout: cfg.HTTP.ReadTimeout, WriteTimeout: cfg.HTTP.WriteTimeout, IdleTimeout: cfg.HTTP.IdleTimeout}
 	var listener net.Listener
 	lc.Append(fx.Hook{OnStart: func(context.Context) error {

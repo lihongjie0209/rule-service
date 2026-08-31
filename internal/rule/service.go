@@ -215,6 +215,18 @@ func (s *Service) Evaluate(ctx context.Context, tenantID, ruleSetID, ruleSetCode
 	return evaluation, version, nil
 }
 
+func (s *Service) BatchEvaluate(ctx context.Context, inputs []EvaluationInput) ([]BatchEvaluationResult, error) {
+	if len(inputs) == 0 || len(inputs) > 100 {
+		return nil, apperror.Invalid("requests must contain between 1 and 100 items", nil)
+	}
+	results := make([]BatchEvaluationResult, len(inputs))
+	for index, input := range inputs {
+		evaluation, version, err := s.Evaluate(ctx, input.TenantID, input.RuleSetID, input.RuleSetCode, input.VersionNumber, input.FactsJSON)
+		results[index] = BatchEvaluationResult{Index: index, Evaluation: evaluation, Version: version, Err: err}
+	}
+	return results, nil
+}
+
 func (s *Service) compiledDefinition(version RuleVersion) (*CompiledDefinition, error) {
 	if cached, ok := s.compiled.Load(version.Checksum); ok {
 		return cached.(*CompiledDefinition), nil
