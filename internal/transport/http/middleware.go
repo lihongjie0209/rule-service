@@ -2,6 +2,7 @@ package httptransport
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"mime"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	platformauthz "github.com/lihongjie0209/microservice-platform-go/authz"
 	platformprincipal "github.com/lihongjie0209/microservice-platform-go/principal"
 	"github.com/lihongjie0209/rule-service/internal/apperror"
 	"github.com/lihongjie0209/rule-service/internal/auth"
@@ -219,9 +221,47 @@ func JWT(service *auth.Service, logger *slog.Logger) gin.HandlerFunc {
 			return
 		}
 		c.Set("subject", identity.ID)
-		c.Request = c.Request.WithContext(platformprincipal.WithContext(c.Request.Context(), identity))
+		ctx := platformprincipal.WithContext(c.Request.Context(), identity)
+		c.Request = c.Request.WithContext(platformauthz.WithCallerCredential(ctx, header))
 		c.Next()
 	}
+}
+
+func Authorization(enabled bool, authorizer platformauthz.Authorizer, logger *slog.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		requirement, protected := ruleHTTPRequirement(c.FullPath())
+		if !enabled || !protected {
+			c.Next()
+			return
+		}
+		if err := platformauthz.Enforce(c.Request.Context(), authorizer, requirement); err != nil {
+			if errors.Is(err, platformauthz.ErrDecisionUnavailable) {
+				Fail(c, logger, apperror.Unavailable("authorization decision is unavailable", err))
+				return
+			}
+			Fail(c, logger, apperror.Forbidden("permission denied"))
+			return
+		}
+		c.Next()
+	}
+}
+
+func ruleHTTPRequirement(route string) (platformauthz.Requirement, bool) {
+	principal := platformauthz.ScopePrincipal
+	requirements := map[string]platformauthz.Requirement{
+		"/api/v1/rule-sets/create":       {Resource: "rule.set", Action: "create", Scope: principal},
+		"/api/v1/rule-sets/update":       {Resource: "rule.set", Action: "update", Scope: principal},
+		"/api/v1/rule-sets/get":          {Resource: "rule.set", Action: "read", Scope: principal},
+		"/api/v1/rule-sets/list":         {Resource: "rule.set", Action: "list", Scope: principal},
+		"/api/v1/rule-versions/create":   {Resource: "rule.version", Action: "create", Scope: principal},
+		"/api/v1/rule-versions/validate": {Resource: "rule.version", Action: "validate", Scope: principal},
+		"/api/v1/rule-versions/publish":  {Resource: "rule.version", Action: "publish", Scope: principal},
+		"/api/v1/rule-versions/list":     {Resource: "rule.version", Action: "list", Scope: principal},
+		"/api/v1/rules/evaluate":         {Resource: "rule.evaluation", Action: "execute", Scope: principal},
+		"/api/v1/rules/evaluate-batch":   {Resource: "rule.evaluation", Action: "execute", Scope: principal},
+	}
+	requirement, ok := requirements[route]
+	return requirement, ok
 }
 
 func Authentication(service *auth.Service, logger *slog.Logger, cfg config.Auth) gin.HandlerFunc {
@@ -233,7 +273,8 @@ func Authentication(service *auth.Service, logger *slog.Logger, cfg config.Auth)
 				return
 			}
 			c.Set("subject", "psk")
-			c.Request = c.Request.WithContext(platformprincipal.WithContext(c.Request.Context(), platformprincipal.Principal{ID: "rule-service:psk", Type: platformprincipal.TypeServiceAccount}))
+			ctx := platformprincipal.WithContext(c.Request.Context(), platformprincipal.Principal{ID: "rule-service:psk", Type: platformprincipal.TypeServiceAccount})
+			c.Request = c.Request.WithContext(platformauthz.WithCallerCredential(ctx, c.GetHeader("Authorization")))
 			c.Next()
 			return
 		}

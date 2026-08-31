@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	platformauthz "github.com/lihongjie0209/microservice-platform-go/authz"
 	platformprincipal "github.com/lihongjie0209/microservice-platform-go/principal"
 	rulev1 "github.com/lihongjie0209/platform-protos/gen/go/platform/rule/v1"
 	"github.com/lihongjie0209/rule-service/internal/auth"
@@ -40,11 +41,11 @@ type Server struct {
 	logger  *slog.Logger
 }
 
-func NewServer(lc fx.Lifecycle, cfg config.Config, authService *auth.Service, healthService *apphealth.Service, ruleService *rule.Service, metrics *observability.Metrics, logger *slog.Logger) (*Server, error) {
+func NewServer(lc fx.Lifecycle, cfg config.Config, authService *auth.Service, authorizer platformauthz.Authorizer, healthService *apphealth.Service, ruleService *rule.Service, metrics *observability.Metrics, logger *slog.Logger) (*Server, error) {
 	options := []grpc.ServerOption{
 		grpc.MaxRecvMsgSize(cfg.GRPC.MaxReceiveBytes),
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
-		grpc.ChainUnaryInterceptor(environmentInterceptor(cfg.Runtime.ActiveProfile), requestIDInterceptor, idempotencyInterceptor, recoveryInterceptor(logger), authInterceptor(authService, cfg.Auth), metricsInterceptor(metrics, logger)),
+		grpc.ChainUnaryInterceptor(environmentInterceptor(cfg.Runtime.ActiveProfile), requestIDInterceptor, idempotencyInterceptor, recoveryInterceptor(logger), authInterceptor(authService, cfg.Auth), platformauthz.UnaryServerInterceptor(authorizer, ruleGRPCRequirement(cfg.Authorization.Enabled)), metricsInterceptor(metrics, logger)),
 		grpc.ChainStreamInterceptor(environmentStreamInterceptor(cfg.Runtime.ActiveProfile), requestIDStreamInterceptor, idempotencyStreamInterceptor, recoveryStreamInterceptor(logger), authStreamInterceptor(authService, cfg.Auth), metricsStreamInterceptor(metrics, logger)),
 	}
 	if cfg.GRPC.TLS.Enabled {
@@ -63,6 +64,29 @@ func NewServer(lc fx.Lifecycle, cfg config.Config, authService *auth.Service, he
 	server := &Server{server: grpcServer, address: cfg.GRPC.Address, logger: logger}
 	lc.Append(fx.Hook{OnStart: server.start(cfg.GRPC.Enabled), OnStop: server.stop})
 	return server, nil
+}
+
+func ruleGRPCRequirement(enabled bool) platformauthz.GRPCResolver {
+	return func(method string) (platformauthz.Requirement, bool) {
+		if !enabled {
+			return platformauthz.Requirement{}, false
+		}
+		principal := platformauthz.ScopePrincipal
+		requirements := map[string]platformauthz.Requirement{
+			rulev1.RuleService_CreateRuleSet_FullMethodName:       {Resource: "rule.set", Action: "create", Scope: principal},
+			rulev1.RuleService_UpdateRuleSet_FullMethodName:       {Resource: "rule.set", Action: "update", Scope: principal},
+			rulev1.RuleService_GetRuleSet_FullMethodName:          {Resource: "rule.set", Action: "read", Scope: principal},
+			rulev1.RuleService_ListRuleSets_FullMethodName:        {Resource: "rule.set", Action: "list", Scope: principal},
+			rulev1.RuleService_CreateRuleVersion_FullMethodName:   {Resource: "rule.version", Action: "create", Scope: principal},
+			rulev1.RuleService_ValidateRuleVersion_FullMethodName: {Resource: "rule.version", Action: "validate", Scope: principal},
+			rulev1.RuleService_PublishRuleVersion_FullMethodName:  {Resource: "rule.version", Action: "publish", Scope: principal},
+			rulev1.RuleService_ListRuleVersions_FullMethodName:    {Resource: "rule.version", Action: "list", Scope: principal},
+			rulev1.RuleService_Evaluate_FullMethodName:            {Resource: "rule.evaluation", Action: "execute", Scope: principal},
+			rulev1.RuleService_BatchEvaluate_FullMethodName:       {Resource: "rule.evaluation", Action: "execute", Scope: principal},
+		}
+		requirement, ok := requirements[method]
+		return requirement, ok
+	}
 }
 
 func (s *Server) start(enabled bool) func(context.Context) error {

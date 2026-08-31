@@ -1,6 +1,7 @@
 package httptransport
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -10,10 +11,52 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	platformauthz "github.com/lihongjie0209/microservice-platform-go/authz"
 	platformprincipal "github.com/lihongjie0209/microservice-platform-go/principal"
 	"github.com/lihongjie0209/rule-service/internal/auth"
 	"github.com/lihongjie0209/rule-service/internal/config"
 )
+
+type authorizationStub struct{ err error }
+
+func (a authorizationStub) Authorize(context.Context, platformprincipal.Principal, platformauthz.Requirement) error {
+	return a.err
+}
+
+func TestRuleHTTPRequirementCoversEveryBusinessRoute(t *testing.T) {
+	t.Parallel()
+	routes := []string{"/api/v1/rule-sets/create", "/api/v1/rule-sets/update", "/api/v1/rule-sets/get", "/api/v1/rule-sets/list", "/api/v1/rule-versions/create", "/api/v1/rule-versions/validate", "/api/v1/rule-versions/publish", "/api/v1/rule-versions/list", "/api/v1/rules/evaluate", "/api/v1/rules/evaluate-batch"}
+	for _, route := range routes {
+		requirement, ok := ruleHTTPRequirement(route)
+		if !ok || requirement.Resource == "" || requirement.Action == "" || requirement.Scope != platformauthz.ScopePrincipal {
+			t.Fatalf("route %q requirement = %+v, %v", route, requirement, ok)
+		}
+	}
+}
+
+func TestAuthorizationFailsClosedAndClassifiesOutage(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+	for _, test := range []struct {
+		name   string
+		err    error
+		status int
+	}{{"denied", platformauthz.ErrDenied, http.StatusForbidden}, {"unavailable", platformauthz.ErrDecisionUnavailable, http.StatusServiceUnavailable}} {
+		t.Run(test.name, func(t *testing.T) {
+			router := gin.New()
+			router.Use(RequestID(), func(c *gin.Context) {
+				c.Request = c.Request.WithContext(platformprincipal.WithContext(c.Request.Context(), platformprincipal.Principal{ID: "user-1", Type: platformprincipal.TypeUser, TenantID: "tenant-1", MembershipID: "membership-1"}))
+				c.Next()
+			}, Authorization(true, authorizationStub{test.err}, slog.New(slog.NewTextHandler(io.Discard, nil))))
+			router.POST("/api/v1/rules/evaluate", func(c *gin.Context) { OK(c, nil) })
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/api/v1/rules/evaluate", nil))
+			if recorder.Code != test.status {
+				t.Fatalf("status = %d, want %d", recorder.Code, test.status)
+			}
+		})
+	}
+}
 
 func TestRequestID(t *testing.T) {
 	t.Parallel()

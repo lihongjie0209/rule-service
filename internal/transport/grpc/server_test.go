@@ -4,13 +4,30 @@ import (
 	"testing"
 	"time"
 
+	platformauthz "github.com/lihongjie0209/microservice-platform-go/authz"
 	platformprincipal "github.com/lihongjie0209/microservice-platform-go/principal"
+	rulev1 "github.com/lihongjie0209/platform-protos/gen/go/platform/rule/v1"
 	"github.com/lihongjie0209/rule-service/internal/auth"
 	"github.com/lihongjie0209/rule-service/internal/config"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
+
+func TestRuleGRPCRequirementCoversEveryBusinessMethod(t *testing.T) {
+	t.Parallel()
+	resolve := ruleGRPCRequirement(true)
+	methods := []string{rulev1.RuleService_CreateRuleSet_FullMethodName, rulev1.RuleService_UpdateRuleSet_FullMethodName, rulev1.RuleService_GetRuleSet_FullMethodName, rulev1.RuleService_ListRuleSets_FullMethodName, rulev1.RuleService_CreateRuleVersion_FullMethodName, rulev1.RuleService_ValidateRuleVersion_FullMethodName, rulev1.RuleService_PublishRuleVersion_FullMethodName, rulev1.RuleService_ListRuleVersions_FullMethodName, rulev1.RuleService_Evaluate_FullMethodName, rulev1.RuleService_BatchEvaluate_FullMethodName}
+	for _, method := range methods {
+		requirement, ok := resolve(method)
+		if !ok || requirement.Resource == "" || requirement.Action == "" || requirement.Scope != platformauthz.ScopePrincipal {
+			t.Fatalf("method %q requirement = %+v, %v", method, requirement, ok)
+		}
+	}
+	if _, ok := ruleGRPCRequirement(false)(rulev1.RuleService_Evaluate_FullMethodName); ok {
+		t.Fatal("disabled authorization must not enforce")
+	}
+}
 
 func TestAuthenticateGRPC_PSKWildcard(t *testing.T) {
 	t.Parallel()
