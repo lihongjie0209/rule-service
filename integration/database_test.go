@@ -20,6 +20,10 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
+type allowApplicationVerifier struct{}
+
+func (allowApplicationVerifier) Verify(context.Context, string, string) error { return nil }
+
 func TestRepositoryAndMigrations(t *testing.T) {
 	for _, databaseType := range []string{"postgres", "mysql"} {
 		t.Run(databaseType, func(t *testing.T) {
@@ -73,25 +77,28 @@ func TestRepositoryAndMigrations(t *testing.T) {
 				t.Fatal("generic template migration must not create a users table")
 			}
 			actorContext := platformprincipal.WithContext(ctx, platformprincipal.Principal{ID: "integration", Type: platformprincipal.TypeServiceAccount})
-			service := rule.NewService(rule.NewRepository(db), appdb.NewTransactor(db))
-			ruleSet, err := service.CreateRuleSet(actorContext, "tenant-integration", "checkout.discount", "Checkout discount", "")
+			service, err := rule.NewService(rule.NewRepository(db), appdb.NewTransactor(db), allowApplicationVerifier{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			ruleSet, err := service.CreateRuleSet(actorContext, "tenant-integration", "app-integration", "checkout.discount", "Checkout discount", "")
 			if err != nil {
 				t.Fatalf("create rule set: %v", err)
 			}
 			definition := `{"rules":[{"name":"vip","condition":"facts.vip == true","result":{"discount":20}}],"default_result":{"discount":0}}`
-			version, created, err := service.CreateRuleVersion(actorContext, "tenant-integration", ruleSet.ID, definition, "version-key-1")
+			version, created, err := service.CreateRuleVersion(actorContext, "tenant-integration", "app-integration", ruleSet.ID, definition, "version-key-1")
 			if err != nil || !created {
 				t.Fatalf("create rule version: created=%v err=%v", created, err)
 			}
-			_, duplicate, err := service.CreateRuleVersion(actorContext, "tenant-integration", ruleSet.ID, definition, "version-key-1")
+			_, duplicate, err := service.CreateRuleVersion(actorContext, "tenant-integration", "app-integration", ruleSet.ID, definition, "version-key-1")
 			if err != nil || duplicate {
 				t.Fatalf("replay rule version: created=%v err=%v", duplicate, err)
 			}
-			ruleSet, version, err = service.PublishRuleVersion(actorContext, "tenant-integration", ruleSet.ID, version.ID, ruleSet.Version, version.Version)
+			ruleSet, version, err = service.PublishRuleVersion(actorContext, "tenant-integration", "app-integration", ruleSet.ID, version.ID, ruleSet.Version, version.Version)
 			if err != nil {
 				t.Fatalf("publish rule version: %v", err)
 			}
-			evaluation, _, err := service.Evaluate(actorContext, "tenant-integration", ruleSet.ID, "", version.VersionNumber, `{"vip":true}`)
+			evaluation, _, err := service.Evaluate(actorContext, "tenant-integration", "app-integration", ruleSet.ID, "", version.VersionNumber, `{"vip":true}`)
 			if err != nil || !evaluation.Matched || evaluation.MatchedRule != "vip" {
 				t.Fatalf("evaluation=%+v err=%v", evaluation, err)
 			}

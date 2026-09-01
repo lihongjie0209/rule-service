@@ -56,6 +56,8 @@ definitions:
     type: object
   httptransport.CreateRuleSetRequest:
     properties:
+      application_id:
+        type: string
       code:
         type: string
       description:
@@ -67,6 +69,8 @@ definitions:
     type: object
   httptransport.CreateRuleVersionRequest:
     properties:
+      application_id:
+        type: string
       definition:
         type: object
       idempotency_key:
@@ -78,6 +82,8 @@ definitions:
     type: object
   httptransport.EvaluateRequest:
     properties:
+      application_id:
+        type: string
       facts:
         type: object
       rule_set_code:
@@ -104,6 +110,8 @@ definitions:
     type: object
   httptransport.GetRuleSetRequest:
     properties:
+      application_id:
+        type: string
       code:
         type: string
       id:
@@ -113,6 +121,8 @@ definitions:
     type: object
   httptransport.ListRuleVersionsRequest:
     properties:
+      application_id:
+        type: string
       page:
         type: integer
       page_size:
@@ -131,6 +141,8 @@ definitions:
     type: object
   httptransport.PageRequest:
     properties:
+      application_id:
+        type: string
       keyword:
         type: string
       page:
@@ -144,6 +156,8 @@ definitions:
     type: object
   httptransport.PublishRuleVersionRequest:
     properties:
+      application_id:
+        type: string
       rule_set_id:
         type: string
       rule_set_version:
@@ -167,6 +181,8 @@ definitions:
     type: object
   httptransport.RuleSetView:
     properties:
+      application_id:
+        type: string
       code:
         type: string
       created_at:
@@ -194,6 +210,8 @@ definitions:
     type: object
   httptransport.RuleVersionView:
     properties:
+      application_id:
+        type: string
       checksum:
         type: string
       created_at:
@@ -223,6 +241,8 @@ definitions:
     type: object
   httptransport.UpdateRuleSetRequest:
     properties:
+      application_id:
+        type: string
       description:
         type: string
       id:
@@ -238,6 +258,8 @@ definitions:
     type: object
   httptransport.ValidateRuleVersionRequest:
     properties:
+      application_id:
+        type: string
       definition:
         type: object
       tenant_id:

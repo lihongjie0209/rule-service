@@ -6,11 +6,11 @@ import (
 )
 
 func ToProtoRuleSet(value RuleSet) *rulev1.RuleSet {
-	return &rulev1.RuleSet{Id: value.ID, TenantId: value.TenantID, Code: value.Code, Name: value.Name, Description: value.Description, Status: value.Status, PublishedVersionNumber: value.PublishedVersionNumber, Version: value.Version, CreatedAt: timestamppb.New(value.CreatedAt), UpdatedAt: timestamppb.New(value.UpdatedAt), CreatedBy: value.CreatedBy, UpdatedBy: value.UpdatedBy}
+	return &rulev1.RuleSet{Id: value.ID, TenantId: value.TenantID, ApplicationId: value.ApplicationID, Code: value.Code, Name: value.Name, Description: value.Description, Status: value.Status, PublishedVersionNumber: value.PublishedVersionNumber, Version: value.Version, CreatedAt: timestamppb.New(value.CreatedAt), UpdatedAt: timestamppb.New(value.UpdatedAt), CreatedBy: value.CreatedBy, UpdatedBy: value.UpdatedBy}
 }
 
 func ToProtoRuleVersion(value RuleVersion) *rulev1.RuleVersion {
-	result := &rulev1.RuleVersion{Id: value.ID, TenantId: value.TenantID, RuleSetId: value.RuleSetID, VersionNumber: value.VersionNumber, Status: value.Status, DefinitionJson: value.DefinitionJSON, Checksum: value.Checksum, Version: value.Version, CreatedAt: timestamppb.New(value.CreatedAt), UpdatedAt: timestamppb.New(value.UpdatedAt), CreatedBy: value.CreatedBy, UpdatedBy: value.UpdatedBy}
+	result := &rulev1.RuleVersion{Id: value.ID, TenantId: value.TenantID, ApplicationId: value.ApplicationID, RuleSetId: value.RuleSetID, VersionNumber: value.VersionNumber, Status: value.Status, DefinitionJson: value.DefinitionJSON, Checksum: value.Checksum, Version: value.Version, CreatedAt: timestamppb.New(value.CreatedAt), UpdatedAt: timestamppb.New(value.UpdatedAt), CreatedBy: value.CreatedBy, UpdatedBy: value.UpdatedBy}
 	if value.PublishedAt != nil {
 		result.PublishedAt = timestamppb.New(*value.PublishedAt)
 	}

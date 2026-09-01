@@ -18,11 +18,11 @@ var (
 type Repository interface {
 	CreateRuleSet(context.Context, sqlx.ExtContext, RuleSet) error
 	UpdateRuleSet(context.Context, sqlx.ExtContext, RuleSet, int64) error
-	GetRuleSet(context.Context, string, string, string) (RuleSet, error)
-	ListRuleSets(context.Context, string, string, string, int, int) ([]RuleSet, int64, error)
+	GetRuleSet(context.Context, string, string, string, string) (RuleSet, error)
+	ListRuleSets(context.Context, string, string, string, string, int, int) ([]RuleSet, int64, error)
 	CreateRuleVersion(context.Context, sqlx.ExtContext, RuleVersion) (RuleVersion, bool, error)
-	GetRuleVersion(context.Context, string, string, string, int64) (RuleVersion, error)
-	ListRuleVersions(context.Context, string, string, string, int, int) ([]RuleVersion, int64, error)
+	GetRuleVersion(context.Context, string, string, string, string, int64) (RuleVersion, error)
+	ListRuleVersions(context.Context, string, string, string, string, int, int) ([]RuleVersion, int64, error)
 	PublishRuleVersion(context.Context, sqlx.ExtContext, RuleSet, RuleVersion, int64, int64) error
 	AddOutbox(context.Context, sqlx.ExtContext, OutboxEvent) error
 }
@@ -31,31 +31,31 @@ type SQLRepository struct{ db *sqlx.DB }
 
 func NewRepository(db *sqlx.DB) Repository { return &SQLRepository{db: db} }
 
-const ruleSetColumns = "id,tenant_id,code,name,description,status,published_version_number,version,created_at,updated_at,created_by,updated_by"
-const ruleVersionColumns = "id,tenant_id,rule_set_id,version_number,status,definition_json,checksum,idempotency_key,published_at,version,created_at,updated_at,created_by,updated_by"
+const ruleSetColumns = "id,tenant_id,application_id,code,name,description,status,published_version_number,version,created_at,updated_at,created_by,updated_by"
+const ruleVersionColumns = "id,tenant_id,application_id,rule_set_id,version_number,status,definition_json,checksum,idempotency_key,published_at,version,created_at,updated_at,created_by,updated_by"
 
 func (r *SQLRepository) CreateRuleSet(ctx context.Context, e sqlx.ExtContext, value RuleSet) error {
-	_, err := e.ExecContext(ctx, r.db.Rebind("INSERT INTO rule_sets ("+ruleSetColumns+") VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"), value.ID, value.TenantID, value.Code, value.Name, value.Description, value.Status, value.PublishedVersionNumber, value.Version, value.CreatedAt, value.UpdatedAt, value.CreatedBy, value.UpdatedBy)
+	_, err := e.ExecContext(ctx, r.db.Rebind("INSERT INTO rule_sets ("+ruleSetColumns+") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)"), value.ID, value.TenantID, value.ApplicationID, value.Code, value.Name, value.Description, value.Status, value.PublishedVersionNumber, value.Version, value.CreatedAt, value.UpdatedAt, value.CreatedBy, value.UpdatedBy)
 	return err
 }
 
 func (r *SQLRepository) UpdateRuleSet(ctx context.Context, e sqlx.ExtContext, value RuleSet, expected int64) error {
-	result, err := e.ExecContext(ctx, r.db.Rebind("UPDATE rule_sets SET name=?,description=?,status=?,version=version+1,updated_at=?,updated_by=? WHERE tenant_id=? AND id=? AND version=?"), value.Name, value.Description, value.Status, value.UpdatedAt, value.UpdatedBy, value.TenantID, value.ID, expected)
+	result, err := e.ExecContext(ctx, r.db.Rebind("UPDATE rule_sets SET name=?,description=?,status=?,version=version+1,updated_at=?,updated_by=? WHERE tenant_id=? AND application_id=? AND id=? AND version=?"), value.Name, value.Description, value.Status, value.UpdatedAt, value.UpdatedBy, value.TenantID, value.ApplicationID, value.ID, expected)
 	return optimistic(result, err)
 }
 
-func (r *SQLRepository) GetRuleSet(ctx context.Context, tenantID, id, code string) (RuleSet, error) {
-	query, argument := "SELECT "+ruleSetColumns+" FROM rule_sets WHERE tenant_id=? AND id=?", id
+func (r *SQLRepository) GetRuleSet(ctx context.Context, tenantID, applicationID, id, code string) (RuleSet, error) {
+	query, argument := "SELECT "+ruleSetColumns+" FROM rule_sets WHERE tenant_id=? AND application_id=? AND id=?", id
 	if strings.TrimSpace(id) == "" {
-		query, argument = "SELECT "+ruleSetColumns+" FROM rule_sets WHERE tenant_id=? AND code=?", code
+		query, argument = "SELECT "+ruleSetColumns+" FROM rule_sets WHERE tenant_id=? AND application_id=? AND code=?", code
 	}
 	var value RuleSet
-	err := r.db.GetContext(ctx, &value, r.db.Rebind(query), tenantID, argument)
+	err := r.db.GetContext(ctx, &value, r.db.Rebind(query), tenantID, applicationID, argument)
 	return value, notFound(err)
 }
 
-func (r *SQLRepository) ListRuleSets(ctx context.Context, tenantID, status, keyword string, limit, offset int) ([]RuleSet, int64, error) {
-	where, args := "tenant_id=?", []any{tenantID}
+func (r *SQLRepository) ListRuleSets(ctx context.Context, tenantID, applicationID, status, keyword string, limit, offset int) ([]RuleSet, int64, error) {
+	where, args := "tenant_id=? AND application_id=?", []any{tenantID, applicationID}
 	if status != "" {
 		where += " AND status=?"
 		args = append(args, status)
@@ -80,11 +80,11 @@ func (r *SQLRepository) CreateRuleVersion(ctx context.Context, e sqlx.ExtContext
 	// This prevents two concurrent requests from both missing the key and then
 	// racing on either the version number or unique idempotency constraint.
 	var ignored int64
-	if err := sqlx.GetContext(ctx, e, &ignored, r.db.Rebind("SELECT version FROM rule_sets WHERE tenant_id=? AND id=? FOR UPDATE"), value.TenantID, value.RuleSetID); err != nil {
+	if err := sqlx.GetContext(ctx, e, &ignored, r.db.Rebind("SELECT version FROM rule_sets WHERE tenant_id=? AND application_id=? AND id=? FOR UPDATE"), value.TenantID, value.ApplicationID, value.RuleSetID); err != nil {
 		return RuleVersion{}, false, notFound(err)
 	}
 	var existing RuleVersion
-	err := sqlx.GetContext(ctx, e, &existing, r.db.Rebind("SELECT "+ruleVersionColumns+" FROM rule_versions WHERE tenant_id=? AND rule_set_id=? AND idempotency_key=?"), value.TenantID, value.RuleSetID, value.IdempotencyKey)
+	err := sqlx.GetContext(ctx, e, &existing, r.db.Rebind("SELECT "+ruleVersionColumns+" FROM rule_versions WHERE tenant_id=? AND application_id=? AND rule_set_id=? AND idempotency_key=?"), value.TenantID, value.ApplicationID, value.RuleSetID, value.IdempotencyKey)
 	if err == nil {
 		if existing.Checksum != value.Checksum {
 			return RuleVersion{}, false, ErrConflict
@@ -94,25 +94,25 @@ func (r *SQLRepository) CreateRuleVersion(ctx context.Context, e sqlx.ExtContext
 	if !errors.Is(err, sql.ErrNoRows) {
 		return RuleVersion{}, false, err
 	}
-	if err := sqlx.GetContext(ctx, e, &value.VersionNumber, r.db.Rebind("SELECT COALESCE(MAX(version_number),0)+1 FROM rule_versions WHERE tenant_id=? AND rule_set_id=?"), value.TenantID, value.RuleSetID); err != nil {
+	if err := sqlx.GetContext(ctx, e, &value.VersionNumber, r.db.Rebind("SELECT COALESCE(MAX(version_number),0)+1 FROM rule_versions WHERE tenant_id=? AND application_id=? AND rule_set_id=?"), value.TenantID, value.ApplicationID, value.RuleSetID); err != nil {
 		return RuleVersion{}, false, err
 	}
-	_, err = e.ExecContext(ctx, r.db.Rebind("INSERT INTO rule_versions ("+ruleVersionColumns+") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"), value.ID, value.TenantID, value.RuleSetID, value.VersionNumber, value.Status, value.DefinitionJSON, value.Checksum, value.IdempotencyKey, value.PublishedAt, value.Version, value.CreatedAt, value.UpdatedAt, value.CreatedBy, value.UpdatedBy)
+	_, err = e.ExecContext(ctx, r.db.Rebind("INSERT INTO rule_versions ("+ruleVersionColumns+") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"), value.ID, value.TenantID, value.ApplicationID, value.RuleSetID, value.VersionNumber, value.Status, value.DefinitionJSON, value.Checksum, value.IdempotencyKey, value.PublishedAt, value.Version, value.CreatedAt, value.UpdatedAt, value.CreatedBy, value.UpdatedBy)
 	return value, true, err
 }
 
-func (r *SQLRepository) GetRuleVersion(ctx context.Context, tenantID, ruleSetID, id string, versionNumber int64) (RuleVersion, error) {
-	query, argument := "SELECT "+ruleVersionColumns+" FROM rule_versions WHERE tenant_id=? AND rule_set_id=? AND id=?", any(id)
+func (r *SQLRepository) GetRuleVersion(ctx context.Context, tenantID, applicationID, ruleSetID, id string, versionNumber int64) (RuleVersion, error) {
+	query, argument := "SELECT "+ruleVersionColumns+" FROM rule_versions WHERE tenant_id=? AND application_id=? AND rule_set_id=? AND id=?", any(id)
 	if strings.TrimSpace(id) == "" {
-		query, argument = "SELECT "+ruleVersionColumns+" FROM rule_versions WHERE tenant_id=? AND rule_set_id=? AND version_number=?", versionNumber
+		query, argument = "SELECT "+ruleVersionColumns+" FROM rule_versions WHERE tenant_id=? AND application_id=? AND rule_set_id=? AND version_number=?", versionNumber
 	}
 	var value RuleVersion
-	err := r.db.GetContext(ctx, &value, r.db.Rebind(query), tenantID, ruleSetID, argument)
+	err := r.db.GetContext(ctx, &value, r.db.Rebind(query), tenantID, applicationID, ruleSetID, argument)
 	return value, notFound(err)
 }
 
-func (r *SQLRepository) ListRuleVersions(ctx context.Context, tenantID, ruleSetID, status string, limit, offset int) ([]RuleVersion, int64, error) {
-	where, args := "tenant_id=? AND rule_set_id=?", []any{tenantID, ruleSetID}
+func (r *SQLRepository) ListRuleVersions(ctx context.Context, tenantID, applicationID, ruleSetID, status string, limit, offset int) ([]RuleVersion, int64, error) {
+	where, args := "tenant_id=? AND application_id=? AND rule_set_id=?", []any{tenantID, applicationID, ruleSetID}
 	if status != "" {
 		where += " AND status=?"
 		args = append(args, status)
@@ -128,11 +128,11 @@ func (r *SQLRepository) ListRuleVersions(ctx context.Context, tenantID, ruleSetI
 }
 
 func (r *SQLRepository) PublishRuleVersion(ctx context.Context, e sqlx.ExtContext, ruleSet RuleSet, version RuleVersion, expectedRuleSetVersion, expectedVersion int64) error {
-	result, err := e.ExecContext(ctx, r.db.Rebind("UPDATE rule_versions SET status='published',published_at=?,version=version+1,updated_at=?,updated_by=? WHERE tenant_id=? AND rule_set_id=? AND id=? AND status='draft' AND version=?"), version.PublishedAt, version.UpdatedAt, version.UpdatedBy, version.TenantID, version.RuleSetID, version.ID, expectedVersion)
+	result, err := e.ExecContext(ctx, r.db.Rebind("UPDATE rule_versions SET status='published',published_at=?,version=version+1,updated_at=?,updated_by=? WHERE tenant_id=? AND application_id=? AND rule_set_id=? AND id=? AND status='draft' AND version=?"), version.PublishedAt, version.UpdatedAt, version.UpdatedBy, version.TenantID, version.ApplicationID, version.RuleSetID, version.ID, expectedVersion)
 	if err := optimistic(result, err); err != nil {
 		return err
 	}
-	result, err = e.ExecContext(ctx, r.db.Rebind("UPDATE rule_sets SET status='active',published_version_number=?,version=version+1,updated_at=?,updated_by=? WHERE tenant_id=? AND id=? AND version=?"), version.VersionNumber, ruleSet.UpdatedAt, ruleSet.UpdatedBy, ruleSet.TenantID, ruleSet.ID, expectedRuleSetVersion)
+	result, err = e.ExecContext(ctx, r.db.Rebind("UPDATE rule_sets SET status='active',published_version_number=?,version=version+1,updated_at=?,updated_by=? WHERE tenant_id=? AND application_id=? AND id=? AND version=?"), version.VersionNumber, ruleSet.UpdatedAt, ruleSet.UpdatedBy, ruleSet.TenantID, ruleSet.ApplicationID, ruleSet.ID, expectedRuleSetVersion)
 	return optimistic(result, err)
 }
 

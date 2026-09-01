@@ -13,6 +13,7 @@ type Audit struct {
 type RuleSet struct {
 	ID                     string `db:"id" json:"id"`
 	TenantID               string `db:"tenant_id" json:"tenant_id"`
+	ApplicationID          string `db:"application_id" json:"application_id"`
 	Code                   string `db:"code" json:"code"`
 	Name                   string `db:"name" json:"name"`
 	Description            string `db:"description" json:"description"`
@@ -24,6 +25,7 @@ type RuleSet struct {
 type RuleVersion struct {
 	ID             string     `db:"id" json:"id"`
 	TenantID       string     `db:"tenant_id" json:"tenant_id"`
+	ApplicationID  string     `db:"application_id" json:"application_id"`
 	RuleSetID      string     `db:"rule_set_id" json:"rule_set_id"`
 	VersionNumber  int64      `db:"version_number" json:"version_number"`
 	Status         string     `db:"status" json:"status"`
@@ -43,6 +45,7 @@ type Page[T any] struct {
 
 type EvaluationInput struct {
 	TenantID      string
+	ApplicationID string
 	RuleSetID     string
 	RuleSetCode   string
 	VersionNumber int64

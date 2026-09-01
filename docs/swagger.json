@@ -718,6 +718,9 @@
         "httptransport.CreateRuleSetRequest": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "code": {
                     "type": "string"
                 },
@@ -735,6 +738,9 @@
         "httptransport.CreateRuleVersionRequest": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "definition": {
                     "type": "object"
                 },
@@ -752,6 +758,9 @@
         "httptransport.EvaluateRequest": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "facts": {
                     "type": "object"
                 },
@@ -792,6 +801,9 @@
         "httptransport.GetRuleSetRequest": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "code": {
                     "type": "string"
                 },
@@ -806,6 +818,9 @@
         "httptransport.ListRuleVersionsRequest": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "page": {
                     "type": "integer"
                 },
@@ -834,6 +849,9 @@
         "httptransport.PageRequest": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "keyword": {
                     "type": "string"
                 },
@@ -854,6 +872,9 @@
         "httptransport.PublishRuleVersionRequest": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "rule_set_id": {
                     "type": "string"
                 },
@@ -889,6 +910,9 @@
         "httptransport.RuleSetView": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "code": {
                     "type": "string"
                 },
@@ -930,6 +954,9 @@
         "httptransport.RuleVersionView": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "checksum": {
                     "type": "string"
                 },
@@ -974,6 +1001,9 @@
         "httptransport.UpdateRuleSetRequest": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -997,6 +1027,9 @@
         "httptransport.ValidateRuleVersionRequest": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "definition": {
                     "type": "object"
                 },

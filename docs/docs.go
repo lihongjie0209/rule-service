@@ -721,6 +721,9 @@ const docTemplate = `{
         "httptransport.CreateRuleSetRequest": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "code": {
                     "type": "string"
                 },
@@ -738,6 +741,9 @@ const docTemplate = `{
         "httptransport.CreateRuleVersionRequest": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "definition": {
                     "type": "object"
                 },
@@ -755,6 +761,9 @@ const docTemplate = `{
         "httptransport.EvaluateRequest": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "facts": {
                     "type": "object"
                 },
@@ -795,6 +804,9 @@ const docTemplate = `{
         "httptransport.GetRuleSetRequest": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "code": {
                     "type": "string"
                 },
@@ -809,6 +821,9 @@ const docTemplate = `{
         "httptransport.ListRuleVersionsRequest": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "page": {
                     "type": "integer"
                 },
@@ -837,6 +852,9 @@ const docTemplate = `{
         "httptransport.PageRequest": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "keyword": {
                     "type": "string"
                 },
@@ -857,6 +875,9 @@ const docTemplate = `{
         "httptransport.PublishRuleVersionRequest": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "rule_set_id": {
                     "type": "string"
                 },
@@ -892,6 +913,9 @@ const docTemplate = `{
         "httptransport.RuleSetView": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "code": {
                     "type": "string"
                 },
@@ -933,6 +957,9 @@ const docTemplate = `{
         "httptransport.RuleVersionView": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "checksum": {
                     "type": "string"
                 },
@@ -977,6 +1004,9 @@ const docTemplate = `{
         "httptransport.UpdateRuleSetRequest": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -1000,6 +1030,9 @@ const docTemplate = `{
         "httptransport.ValidateRuleVersionRequest": {
             "type": "object",
             "properties": {
+                "application_id": {
+                    "type": "string"
+                },
                 "definition": {
                     "type": "object"
                 },

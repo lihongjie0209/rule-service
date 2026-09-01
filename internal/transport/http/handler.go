@@ -86,6 +86,7 @@ func (h *Handler) Version(c *gin.Context) { OK(c, buildinfo.Current()) }
 type RuleSetView struct {
 	ID                     string    `json:"id"`
 	TenantID               string    `json:"tenant_id"`
+	ApplicationID          string    `json:"application_id"`
 	Code                   string    `json:"code"`
 	Name                   string    `json:"name"`
 	Description            string    `json:"description"`
@@ -100,6 +101,7 @@ type RuleSetView struct {
 type RuleVersionView struct {
 	ID            string          `json:"id"`
 	TenantID      string          `json:"tenant_id"`
+	ApplicationID string          `json:"application_id"`
 	RuleSetID     string          `json:"rule_set_id"`
 	VersionNumber int64           `json:"version_number"`
 	Status        string          `json:"status"`
@@ -113,57 +115,66 @@ type RuleVersionView struct {
 	UpdatedBy     string          `json:"updated_by"`
 }
 type PageRequest struct {
-	TenantID string `json:"tenant_id"`
-	Status   string `json:"status"`
-	Keyword  string `json:"keyword"`
-	Page     int    `json:"page"`
-	PageSize int    `json:"page_size"`
+	TenantID      string `json:"tenant_id"`
+	ApplicationID string `json:"application_id"`
+	Status        string `json:"status"`
+	Keyword       string `json:"keyword"`
+	Page          int    `json:"page"`
+	PageSize      int    `json:"page_size"`
 }
 type CreateRuleSetRequest struct {
-	TenantID    string `json:"tenant_id"`
-	Code        string `json:"code"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	TenantID      string `json:"tenant_id"`
+	ApplicationID string `json:"application_id"`
+	Code          string `json:"code"`
+	Name          string `json:"name"`
+	Description   string `json:"description"`
 }
 type UpdateRuleSetRequest struct {
-	TenantID    string `json:"tenant_id"`
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Status      string `json:"status"`
-	Version     int64  `json:"version"`
+	TenantID      string `json:"tenant_id"`
+	ApplicationID string `json:"application_id"`
+	ID            string `json:"id"`
+	Name          string `json:"name"`
+	Description   string `json:"description"`
+	Status        string `json:"status"`
+	Version       int64  `json:"version"`
 }
 type GetRuleSetRequest struct {
-	TenantID string `json:"tenant_id"`
-	ID       string `json:"id"`
-	Code     string `json:"code"`
+	TenantID      string `json:"tenant_id"`
+	ApplicationID string `json:"application_id"`
+	ID            string `json:"id"`
+	Code          string `json:"code"`
 }
 type CreateRuleVersionRequest struct {
 	TenantID       string          `json:"tenant_id"`
+	ApplicationID  string          `json:"application_id"`
 	RuleSetID      string          `json:"rule_set_id"`
 	Definition     json.RawMessage `json:"definition" swaggertype:"object"`
 	IdempotencyKey string          `json:"idempotency_key"`
 }
 type ValidateRuleVersionRequest struct {
-	TenantID   string          `json:"tenant_id"`
-	Definition json.RawMessage `json:"definition" swaggertype:"object"`
+	TenantID      string          `json:"tenant_id"`
+	ApplicationID string          `json:"application_id"`
+	Definition    json.RawMessage `json:"definition" swaggertype:"object"`
 }
 type PublishRuleVersionRequest struct {
 	TenantID           string `json:"tenant_id"`
+	ApplicationID      string `json:"application_id"`
 	RuleSetID          string `json:"rule_set_id"`
 	RuleVersionID      string `json:"rule_version_id"`
 	RuleSetVersion     int64  `json:"rule_set_version"`
 	RuleVersionVersion int64  `json:"rule_version_version"`
 }
 type ListRuleVersionsRequest struct {
-	TenantID  string `json:"tenant_id"`
-	RuleSetID string `json:"rule_set_id"`
-	Status    string `json:"status"`
-	Page      int    `json:"page"`
-	PageSize  int    `json:"page_size"`
+	TenantID      string `json:"tenant_id"`
+	ApplicationID string `json:"application_id"`
+	RuleSetID     string `json:"rule_set_id"`
+	Status        string `json:"status"`
+	Page          int    `json:"page"`
+	PageSize      int    `json:"page_size"`
 }
 type EvaluateRequest struct {
 	TenantID      string          `json:"tenant_id"`
+	ApplicationID string          `json:"application_id"`
 	RuleSetID     string          `json:"rule_set_id"`
 	RuleSetCode   string          `json:"rule_set_code"`
 	VersionNumber int64           `json:"version_number"`
@@ -197,10 +208,10 @@ func bind(c *gin.Context, target any) bool {
 	return true
 }
 func ruleSetView(v rule.RuleSet) RuleSetView {
-	return RuleSetView{v.ID, v.TenantID, v.Code, v.Name, v.Description, v.Status, v.PublishedVersionNumber, v.Version, v.CreatedAt, v.UpdatedAt, v.CreatedBy, v.UpdatedBy}
+	return RuleSetView{ID: v.ID, TenantID: v.TenantID, ApplicationID: v.ApplicationID, Code: v.Code, Name: v.Name, Description: v.Description, Status: v.Status, PublishedVersionNumber: v.PublishedVersionNumber, Version: v.Version, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt, CreatedBy: v.CreatedBy, UpdatedBy: v.UpdatedBy}
 }
 func ruleVersionView(v rule.RuleVersion) RuleVersionView {
-	return RuleVersionView{v.ID, v.TenantID, v.RuleSetID, v.VersionNumber, v.Status, json.RawMessage(v.DefinitionJSON), v.Checksum, v.PublishedAt, v.Version, v.CreatedAt, v.UpdatedAt, v.CreatedBy, v.UpdatedBy}
+	return RuleVersionView{ID: v.ID, TenantID: v.TenantID, ApplicationID: v.ApplicationID, RuleSetID: v.RuleSetID, VersionNumber: v.VersionNumber, Status: v.Status, Definition: json.RawMessage(v.DefinitionJSON), Checksum: v.Checksum, PublishedAt: v.PublishedAt, Version: v.Version, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt, CreatedBy: v.CreatedBy, UpdatedBy: v.UpdatedBy}
 }
 
 // CreateRuleSet godoc
@@ -218,7 +229,7 @@ func (h *Handler) CreateRuleSet(c *gin.Context) {
 	if !bind(c, &r) {
 		return
 	}
-	v, e := h.rules.CreateRuleSet(c.Request.Context(), r.TenantID, r.Code, r.Name, r.Description)
+	v, e := h.rules.CreateRuleSet(c.Request.Context(), r.TenantID, r.ApplicationID, r.Code, r.Name, r.Description)
 	if e != nil {
 		Fail(c, h.logger, e)
 		return
@@ -241,7 +252,7 @@ func (h *Handler) UpdateRuleSet(c *gin.Context) {
 	if !bind(c, &r) {
 		return
 	}
-	v, e := h.rules.UpdateRuleSet(c.Request.Context(), r.TenantID, r.ID, r.Name, r.Description, r.Status, r.Version)
+	v, e := h.rules.UpdateRuleSet(c.Request.Context(), r.TenantID, r.ApplicationID, r.ID, r.Name, r.Description, r.Status, r.Version)
 	if e != nil {
 		Fail(c, h.logger, e)
 		return
@@ -264,7 +275,7 @@ func (h *Handler) GetRuleSet(c *gin.Context) {
 	if !bind(c, &r) {
 		return
 	}
-	v, p, e := h.rules.GetRuleSet(c.Request.Context(), r.TenantID, r.ID, r.Code)
+	v, p, e := h.rules.GetRuleSet(c.Request.Context(), r.TenantID, r.ApplicationID, r.ID, r.Code)
 	if e != nil {
 		Fail(c, h.logger, e)
 		return
@@ -291,7 +302,7 @@ func (h *Handler) ListRuleSets(c *gin.Context) {
 	if !bind(c, &r) {
 		return
 	}
-	v, e := h.rules.ListRuleSets(c.Request.Context(), r.TenantID, r.Status, r.Keyword, r.Page, r.PageSize)
+	v, e := h.rules.ListRuleSets(c.Request.Context(), r.TenantID, r.ApplicationID, r.Status, r.Keyword, r.Page, r.PageSize)
 	if e != nil {
 		Fail(c, h.logger, e)
 		return
@@ -318,7 +329,7 @@ func (h *Handler) CreateRuleVersion(c *gin.Context) {
 	if !bind(c, &r) {
 		return
 	}
-	v, d, e := h.rules.CreateRuleVersion(c.Request.Context(), r.TenantID, r.RuleSetID, string(r.Definition), r.IdempotencyKey)
+	v, d, e := h.rules.CreateRuleVersion(c.Request.Context(), r.TenantID, r.ApplicationID, r.RuleSetID, string(r.Definition), r.IdempotencyKey)
 	if e != nil {
 		Fail(c, h.logger, e)
 		return
@@ -341,7 +352,7 @@ func (h *Handler) ValidateRuleVersion(c *gin.Context) {
 	if !bind(c, &r) {
 		return
 	}
-	checksum, issues, e := h.rules.ValidateRuleVersion(c.Request.Context(), r.TenantID, string(r.Definition))
+	checksum, issues, e := h.rules.ValidateRuleVersion(c.Request.Context(), r.TenantID, r.ApplicationID, string(r.Definition))
 	if e != nil {
 		Fail(c, h.logger, e)
 		return
@@ -364,7 +375,7 @@ func (h *Handler) PublishRuleVersion(c *gin.Context) {
 	if !bind(c, &r) {
 		return
 	}
-	set, v, e := h.rules.PublishRuleVersion(c.Request.Context(), r.TenantID, r.RuleSetID, r.RuleVersionID, r.RuleSetVersion, r.RuleVersionVersion)
+	set, v, e := h.rules.PublishRuleVersion(c.Request.Context(), r.TenantID, r.ApplicationID, r.RuleSetID, r.RuleVersionID, r.RuleSetVersion, r.RuleVersionVersion)
 	if e != nil {
 		Fail(c, h.logger, e)
 		return
@@ -387,7 +398,7 @@ func (h *Handler) ListRuleVersions(c *gin.Context) {
 	if !bind(c, &r) {
 		return
 	}
-	v, e := h.rules.ListRuleVersions(c.Request.Context(), r.TenantID, r.RuleSetID, r.Status, r.Page, r.PageSize)
+	v, e := h.rules.ListRuleVersions(c.Request.Context(), r.TenantID, r.ApplicationID, r.RuleSetID, r.Status, r.Page, r.PageSize)
 	if e != nil {
 		Fail(c, h.logger, e)
 		return
@@ -414,7 +425,7 @@ func (h *Handler) Evaluate(c *gin.Context) {
 	if !bind(c, &r) {
 		return
 	}
-	v, version, e := h.rules.Evaluate(c.Request.Context(), r.TenantID, r.RuleSetID, r.RuleSetCode, r.VersionNumber, string(r.Facts))
+	v, version, e := h.rules.Evaluate(c.Request.Context(), r.TenantID, r.ApplicationID, r.RuleSetID, r.RuleSetCode, r.VersionNumber, string(r.Facts))
 	if e != nil {
 		Fail(c, h.logger, e)
 		return
@@ -440,7 +451,7 @@ func (h *Handler) BatchEvaluate(c *gin.Context) {
 	}
 	inputs := make([]rule.EvaluationInput, len(request.Requests))
 	for index, item := range request.Requests {
-		inputs[index] = rule.EvaluationInput{TenantID: item.TenantID, RuleSetID: item.RuleSetID, RuleSetCode: item.RuleSetCode, VersionNumber: item.VersionNumber, FactsJSON: string(item.Facts)}
+		inputs[index] = rule.EvaluationInput{TenantID: item.TenantID, ApplicationID: item.ApplicationID, RuleSetID: item.RuleSetID, RuleSetCode: item.RuleSetCode, VersionNumber: item.VersionNumber, FactsJSON: string(item.Facts)}
 	}
 	results, err := h.rules.BatchEvaluate(c.Request.Context(), inputs)
 	if err != nil {
