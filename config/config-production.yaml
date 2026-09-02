@@ -36,6 +36,8 @@ rate_limit:
   enabled: true
 idempotency:
   enabled: true
+  http_paths: [/api/v1/rule-sets/create, /api/v1/rule-sets/update, /api/v1/rule-versions/create, /api/v1/rule-versions/publish]
+  grpc_methods: [/platform.rule.v1.RuleService/CreateRuleSet, /platform.rule.v1.RuleService/UpdateRuleSet, /platform.rule.v1.RuleService/CreateRuleVersion, /platform.rule.v1.RuleService/PublishRuleVersion]
 observability:
   metrics_enabled: true
   tracing_enabled: false
