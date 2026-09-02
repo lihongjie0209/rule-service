@@ -199,6 +199,40 @@ type BatchEvaluateResult struct {
 type BatchEvaluateResponse struct {
 	Results []BatchEvaluateResult `json:"results"`
 }
+type RuleSetDetailBody struct {
+	RuleSet          RuleSetView      `json:"rule_set"`
+	PublishedVersion *RuleVersionView `json:"published_version,omitempty"`
+}
+type RuleSetPageBody struct {
+	Items    []RuleSetView `json:"items"`
+	Total    int64         `json:"total"`
+	Page     int           `json:"page"`
+	PageSize int           `json:"page_size"`
+}
+type CreateRuleVersionBody struct {
+	RuleVersion RuleVersionView `json:"rule_version"`
+	Duplicate   bool            `json:"duplicate"`
+}
+type ValidationIssueBody struct {
+	Path    string `json:"path"`
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+type ValidateRuleVersionBody struct {
+	Valid    bool                  `json:"valid"`
+	Issues   []ValidationIssueBody `json:"issues"`
+	Checksum string                `json:"checksum"`
+}
+type PublishRuleVersionBody struct {
+	RuleSet     RuleSetView     `json:"rule_set"`
+	RuleVersion RuleVersionView `json:"rule_version"`
+}
+type RuleVersionPageBody struct {
+	Items    []RuleVersionView `json:"items"`
+	Total    int64             `json:"total"`
+	Page     int               `json:"page"`
+	PageSize int               `json:"page_size"`
+}
 
 func bind(c *gin.Context, target any) bool {
 	if err := c.ShouldBindJSON(target); err != nil {
@@ -268,7 +302,7 @@ func (h *Handler) UpdateRuleSet(c *gin.Context) {
 // @Security Bearer
 // @Security PSK
 // @Param request body GetRuleSetRequest true "Rule set selector"
-// @Success 200 {object} Response
+// @Success 200 {object} Response{body=RuleSetDetailBody}
 // @Router /api/v1/rule-sets/get [post]
 func (h *Handler) GetRuleSet(c *gin.Context) {
 	var r GetRuleSetRequest
@@ -280,9 +314,10 @@ func (h *Handler) GetRuleSet(c *gin.Context) {
 		Fail(c, h.logger, e)
 		return
 	}
-	body := gin.H{"rule_set": ruleSetView(v)}
+	body := RuleSetDetailBody{RuleSet: ruleSetView(v)}
 	if p != nil {
-		body["published_version"] = ruleVersionView(*p)
+		published := ruleVersionView(*p)
+		body.PublishedVersion = &published
 	}
 	OK(c, body)
 }
@@ -295,7 +330,7 @@ func (h *Handler) GetRuleSet(c *gin.Context) {
 // @Security Bearer
 // @Security PSK
 // @Param request body PageRequest true "Search and pagination"
-// @Success 200 {object} Response
+// @Success 200 {object} Response{body=RuleSetPageBody}
 // @Router /api/v1/rule-sets/list [post]
 func (h *Handler) ListRuleSets(c *gin.Context) {
 	var r PageRequest
@@ -311,7 +346,7 @@ func (h *Handler) ListRuleSets(c *gin.Context) {
 	for i := range v.Items {
 		items[i] = ruleSetView(v.Items[i])
 	}
-	OK(c, gin.H{"items": items, "total": v.Total, "page": v.Page, "page_size": v.PageSize})
+	OK(c, RuleSetPageBody{Items: items, Total: v.Total, Page: v.Page, PageSize: v.PageSize})
 }
 
 // CreateRuleVersion godoc
@@ -322,7 +357,7 @@ func (h *Handler) ListRuleSets(c *gin.Context) {
 // @Security Bearer
 // @Security PSK
 // @Param request body CreateRuleVersionRequest true "Rule definition"
-// @Success 200 {object} Response{body=RuleVersionView}
+// @Success 200 {object} Response{body=CreateRuleVersionBody}
 // @Router /api/v1/rule-versions/create [post]
 func (h *Handler) CreateRuleVersion(c *gin.Context) {
 	var r CreateRuleVersionRequest
@@ -334,7 +369,7 @@ func (h *Handler) CreateRuleVersion(c *gin.Context) {
 		Fail(c, h.logger, e)
 		return
 	}
-	OK(c, gin.H{"rule_version": ruleVersionView(v), "duplicate": !d})
+	OK(c, CreateRuleVersionBody{RuleVersion: ruleVersionView(v), Duplicate: !d})
 }
 
 // ValidateRuleVersion godoc
@@ -345,7 +380,7 @@ func (h *Handler) CreateRuleVersion(c *gin.Context) {
 // @Security Bearer
 // @Security PSK
 // @Param request body ValidateRuleVersionRequest true "Rule definition"
-// @Success 200 {object} Response
+// @Success 200 {object} Response{body=ValidateRuleVersionBody}
 // @Router /api/v1/rule-versions/validate [post]
 func (h *Handler) ValidateRuleVersion(c *gin.Context) {
 	var r ValidateRuleVersionRequest
@@ -357,7 +392,11 @@ func (h *Handler) ValidateRuleVersion(c *gin.Context) {
 		Fail(c, h.logger, e)
 		return
 	}
-	OK(c, gin.H{"valid": len(issues) == 0, "issues": issues, "checksum": checksum})
+	issueBodies := make([]ValidationIssueBody, len(issues))
+	for i, issue := range issues {
+		issueBodies[i] = ValidationIssueBody{Path: issue.Path, Code: issue.Code, Message: issue.Message}
+	}
+	OK(c, ValidateRuleVersionBody{Valid: len(issues) == 0, Issues: issueBodies, Checksum: checksum})
 }
 
 // PublishRuleVersion godoc
@@ -368,7 +407,7 @@ func (h *Handler) ValidateRuleVersion(c *gin.Context) {
 // @Security Bearer
 // @Security PSK
 // @Param request body PublishRuleVersionRequest true "Publish versions"
-// @Success 200 {object} Response
+// @Success 200 {object} Response{body=PublishRuleVersionBody}
 // @Router /api/v1/rule-versions/publish [post]
 func (h *Handler) PublishRuleVersion(c *gin.Context) {
 	var r PublishRuleVersionRequest
@@ -380,7 +419,7 @@ func (h *Handler) PublishRuleVersion(c *gin.Context) {
 		Fail(c, h.logger, e)
 		return
 	}
-	OK(c, gin.H{"rule_set": ruleSetView(set), "rule_version": ruleVersionView(v)})
+	OK(c, PublishRuleVersionBody{RuleSet: ruleSetView(set), RuleVersion: ruleVersionView(v)})
 }
 
 // ListRuleVersions godoc
@@ -391,7 +430,7 @@ func (h *Handler) PublishRuleVersion(c *gin.Context) {
 // @Security Bearer
 // @Security PSK
 // @Param request body ListRuleVersionsRequest true "Rule version search"
-// @Success 200 {object} Response
+// @Success 200 {object} Response{body=RuleVersionPageBody}
 // @Router /api/v1/rule-versions/list [post]
 func (h *Handler) ListRuleVersions(c *gin.Context) {
 	var r ListRuleVersionsRequest
@@ -407,7 +446,7 @@ func (h *Handler) ListRuleVersions(c *gin.Context) {
 	for i := range v.Items {
 		items[i] = ruleVersionView(v.Items[i])
 	}
-	OK(c, gin.H{"items": items, "total": v.Total, "page": v.Page, "page_size": v.PageSize})
+	OK(c, RuleVersionPageBody{Items: items, Total: v.Total, Page: v.Page, PageSize: v.PageSize})
 }
 
 // Evaluate godoc
@@ -418,7 +457,7 @@ func (h *Handler) ListRuleVersions(c *gin.Context) {
 // @Security Bearer
 // @Security PSK
 // @Param request body EvaluateRequest true "Evaluation facts"
-// @Success 200 {object} Response
+// @Success 200 {object} Response{body=EvaluateResponse}
 // @Router /api/v1/rules/evaluate [post]
 func (h *Handler) Evaluate(c *gin.Context) {
 	var r EvaluateRequest
@@ -480,52 +519,3 @@ func (h *Handler) BatchEvaluate(c *gin.Context) {
 func evaluationResponse(value rule.Evaluation, version rule.RuleVersion) EvaluateResponse {
 	return EvaluateResponse{Matched: value.Matched, MatchedRule: value.MatchedRule, Result: json.RawMessage(value.ResultJSON), EvaluatedVersionNumber: version.VersionNumber, Checksum: version.Checksum}
 }
-
-// CreateUser godoc
-// @Summary Create a user
-// @Tags users
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Param request body CreateUserRequest true "User"
-// @Success 200 {object} Response{body=user.User}
-// @Failure 400 {object} Response "Code 10001: invalid request"
-// @Failure 409 {object} Response "Code 30009: email already exists"
-
-// GetUser godoc
-// @Summary Get a user
-// @Tags users
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Param request body GetUserRequest true "User ID"
-// @Success 200 {object} Response{body=user.User}
-// @Failure 404 {object} Response "Code 10004: user not found"
-
-// ListUsers godoc
-// @Summary List users
-// @Tags users
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Param request body ListUsersRequest true "Pagination"
-// @Success 200 {object} Response{body=user.Page}
-
-// UpdateUser godoc
-// @Summary Update a user using optimistic locking
-// @Tags users
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Param request body UpdateUserRequest true "User and current version"
-// @Success 200 {object} Response{body=user.User}
-// @Failure 409 {object} Response "Code 30009: version conflict"
-
-// DeleteUser godoc
-// @Summary Delete a user using optimistic locking
-// @Tags users
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Param request body DeleteUserRequest true "User ID and current version"
-// @Success 200 {object} Response

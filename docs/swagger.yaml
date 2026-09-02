@@ -67,6 +67,13 @@ definitions:
       tenant_id:
         type: string
     type: object
+  httptransport.CreateRuleVersionBody:
+    properties:
+      duplicate:
+        type: boolean
+      rule_version:
+        $ref: '#/definitions/httptransport.RuleVersionView'
+    type: object
   httptransport.CreateRuleVersionRequest:
     properties:
       application_id:
@@ -154,6 +161,13 @@ definitions:
       tenant_id:
         type: string
     type: object
+  httptransport.PublishRuleVersionBody:
+    properties:
+      rule_set:
+        $ref: '#/definitions/httptransport.RuleSetView'
+      rule_version:
+        $ref: '#/definitions/httptransport.RuleVersionView'
+    type: object
   httptransport.PublishRuleVersionRequest:
     properties:
       application_id:
@@ -178,6 +192,26 @@ definitions:
         type: string
       request_id:
         type: string
+    type: object
+  httptransport.RuleSetDetailBody:
+    properties:
+      published_version:
+        $ref: '#/definitions/httptransport.RuleVersionView'
+      rule_set:
+        $ref: '#/definitions/httptransport.RuleSetView'
+    type: object
+  httptransport.RuleSetPageBody:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/httptransport.RuleSetView'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
     type: object
   httptransport.RuleSetView:
     properties:
@@ -206,6 +240,19 @@ definitions:
       updated_by:
         type: string
       version:
+        type: integer
+    type: object
+  httptransport.RuleVersionPageBody:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/httptransport.RuleVersionView'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
         type: integer
     type: object
   httptransport.RuleVersionView:
@@ -256,6 +303,17 @@ definitions:
       version:
         type: integer
     type: object
+  httptransport.ValidateRuleVersionBody:
+    properties:
+      checksum:
+        type: string
+      issues:
+        items:
+          $ref: '#/definitions/httptransport.ValidationIssueBody'
+        type: array
+      valid:
+        type: boolean
+    type: object
   httptransport.ValidateRuleVersionRequest:
     properties:
       application_id:
@@ -263,6 +321,15 @@ definitions:
       definition:
         type: object
       tenant_id:
+        type: string
+    type: object
+  httptransport.ValidationIssueBody:
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+      path:
         type: string
     type: object
 info:
@@ -342,7 +409,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/httptransport.Response'
+            allOf:
+            - $ref: '#/definitions/httptransport.Response'
+            - properties:
+                body:
+                  $ref: '#/definitions/httptransport.RuleSetDetailBody'
+              type: object
       security:
       - Bearer: []
       - PSK: []
@@ -366,7 +438,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/httptransport.Response'
+            allOf:
+            - $ref: '#/definitions/httptransport.Response'
+            - properties:
+                body:
+                  $ref: '#/definitions/httptransport.RuleSetPageBody'
+              type: object
       security:
       - Bearer: []
       - PSK: []
@@ -423,7 +500,7 @@ paths:
             - $ref: '#/definitions/httptransport.Response'
             - properties:
                 body:
-                  $ref: '#/definitions/httptransport.RuleVersionView'
+                  $ref: '#/definitions/httptransport.CreateRuleVersionBody'
               type: object
       security:
       - Bearer: []
@@ -448,7 +525,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/httptransport.Response'
+            allOf:
+            - $ref: '#/definitions/httptransport.Response'
+            - properties:
+                body:
+                  $ref: '#/definitions/httptransport.RuleVersionPageBody'
+              type: object
       security:
       - Bearer: []
       - PSK: []
@@ -472,7 +554,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/httptransport.Response'
+            allOf:
+            - $ref: '#/definitions/httptransport.Response'
+            - properties:
+                body:
+                  $ref: '#/definitions/httptransport.PublishRuleVersionBody'
+              type: object
       security:
       - Bearer: []
       - PSK: []
@@ -496,7 +583,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/httptransport.Response'
+            allOf:
+            - $ref: '#/definitions/httptransport.Response'
+            - properties:
+                body:
+                  $ref: '#/definitions/httptransport.ValidateRuleVersionBody'
+              type: object
       security:
       - Bearer: []
       - PSK: []
@@ -520,7 +612,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/httptransport.Response'
+            allOf:
+            - $ref: '#/definitions/httptransport.Response'
+            - properties:
+                body:
+                  $ref: '#/definitions/httptransport.EvaluateResponse'
+              type: object
       security:
       - Bearer: []
       - PSK: []

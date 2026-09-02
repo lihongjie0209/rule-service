@@ -145,7 +145,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/httptransport.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/httptransport.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "body": {
+                                            "$ref": "#/definitions/httptransport.RuleSetDetailBody"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -186,7 +198,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/httptransport.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/httptransport.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "body": {
+                                            "$ref": "#/definitions/httptransport.RuleSetPageBody"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -288,7 +312,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "body": {
-                                            "$ref": "#/definitions/httptransport.RuleVersionView"
+                                            "$ref": "#/definitions/httptransport.CreateRuleVersionBody"
                                         }
                                     }
                                 }
@@ -333,7 +357,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/httptransport.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/httptransport.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "body": {
+                                            "$ref": "#/definitions/httptransport.RuleVersionPageBody"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -374,7 +410,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/httptransport.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/httptransport.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "body": {
+                                            "$ref": "#/definitions/httptransport.PublishRuleVersionBody"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -415,7 +463,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/httptransport.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/httptransport.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "body": {
+                                            "$ref": "#/definitions/httptransport.ValidateRuleVersionBody"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -456,7 +516,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/httptransport.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/httptransport.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "body": {
+                                            "$ref": "#/definitions/httptransport.EvaluateResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -738,6 +810,17 @@ const docTemplate = `{
                 }
             }
         },
+        "httptransport.CreateRuleVersionBody": {
+            "type": "object",
+            "properties": {
+                "duplicate": {
+                    "type": "boolean"
+                },
+                "rule_version": {
+                    "$ref": "#/definitions/httptransport.RuleVersionView"
+                }
+            }
+        },
         "httptransport.CreateRuleVersionRequest": {
             "type": "object",
             "properties": {
@@ -872,6 +955,17 @@ const docTemplate = `{
                 }
             }
         },
+        "httptransport.PublishRuleVersionBody": {
+            "type": "object",
+            "properties": {
+                "rule_set": {
+                    "$ref": "#/definitions/httptransport.RuleSetView"
+                },
+                "rule_version": {
+                    "$ref": "#/definitions/httptransport.RuleVersionView"
+                }
+            }
+        },
         "httptransport.PublishRuleVersionRequest": {
             "type": "object",
             "properties": {
@@ -907,6 +1001,37 @@ const docTemplate = `{
                 },
                 "request_id": {
                     "type": "string"
+                }
+            }
+        },
+        "httptransport.RuleSetDetailBody": {
+            "type": "object",
+            "properties": {
+                "published_version": {
+                    "$ref": "#/definitions/httptransport.RuleVersionView"
+                },
+                "rule_set": {
+                    "$ref": "#/definitions/httptransport.RuleSetView"
+                }
+            }
+        },
+        "httptransport.RuleSetPageBody": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/httptransport.RuleSetView"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         },
@@ -950,6 +1075,26 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "httptransport.RuleVersionPageBody": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/httptransport.RuleVersionView"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
                     "type": "integer"
                 }
             }
@@ -1027,6 +1172,23 @@ const docTemplate = `{
                 }
             }
         },
+        "httptransport.ValidateRuleVersionBody": {
+            "type": "object",
+            "properties": {
+                "checksum": {
+                    "type": "string"
+                },
+                "issues": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/httptransport.ValidationIssueBody"
+                    }
+                },
+                "valid": {
+                    "type": "boolean"
+                }
+            }
+        },
         "httptransport.ValidateRuleVersionRequest": {
             "type": "object",
             "properties": {
@@ -1037,6 +1199,20 @@ const docTemplate = `{
                     "type": "object"
                 },
                 "tenant_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "httptransport.ValidationIssueBody": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "path": {
                     "type": "string"
                 }
             }
