@@ -172,6 +172,12 @@ type ListRuleVersionsRequest struct {
 	Page          int    `json:"page"`
 	PageSize      int    `json:"page_size"`
 }
+type GetRuleVersionRequest struct {
+	TenantID      string `json:"tenant_id"`
+	ApplicationID string `json:"application_id"`
+	RuleSetID     string `json:"rule_set_id"`
+	ID            string `json:"id"`
+}
 type EvaluateRequest struct {
 	TenantID      string          `json:"tenant_id"`
 	ApplicationID string          `json:"application_id"`
@@ -420,6 +426,29 @@ func (h *Handler) PublishRuleVersion(c *gin.Context) {
 		return
 	}
 	OK(c, PublishRuleVersionBody{RuleSet: ruleSetView(set), RuleVersion: ruleVersionView(v)})
+}
+
+// GetRuleVersion godoc
+// @Summary Get a rule version
+// @Tags rule versions
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Security PSK
+// @Param request body GetRuleVersionRequest true "Rule version selector"
+// @Success 200 {object} Response{body=RuleVersionView}
+// @Router /api/v1/rule-versions/get [post]
+func (h *Handler) GetRuleVersion(c *gin.Context) {
+	var r GetRuleVersionRequest
+	if !bind(c, &r) {
+		return
+	}
+	v, e := h.rules.GetRuleVersion(c.Request.Context(), r.TenantID, r.ApplicationID, r.RuleSetID, r.ID)
+	if e != nil {
+		Fail(c, h.logger, e)
+		return
+	}
+	OK(c, ruleVersionView(v))
 }
 
 // ListRuleVersions godoc

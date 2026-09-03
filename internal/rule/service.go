@@ -213,6 +213,17 @@ func (s *Service) ListRuleVersions(ctx context.Context, tenantID, applicationID,
 	return Page[RuleVersion]{Items: items, Total: total, Page: page, PageSize: pageSize}, translate(err)
 }
 
+func (s *Service) GetRuleVersion(ctx context.Context, tenantID, applicationID, ruleSetID, id string) (RuleVersion, error) {
+	if _, err := authorize(ctx, tenantID); err != nil {
+		return RuleVersion{}, err
+	}
+	if err := s.verifyApplication(ctx, tenantID, applicationID); err != nil {
+		return RuleVersion{}, err
+	}
+	value, err := s.repository.GetRuleVersion(ctx, strings.TrimSpace(tenantID), strings.TrimSpace(applicationID), strings.TrimSpace(ruleSetID), strings.TrimSpace(id), 0)
+	return value, translate(err)
+}
+
 func (s *Service) Evaluate(ctx context.Context, tenantID, applicationID, ruleSetID, ruleSetCode string, versionNumber int64, factsJSON string) (Evaluation, RuleVersion, error) {
 	if _, err := authorize(ctx, tenantID); err != nil {
 		return Evaluation{}, RuleVersion{}, err

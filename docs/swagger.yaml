@@ -126,6 +126,17 @@ definitions:
       tenant_id:
         type: string
     type: object
+  httptransport.GetRuleVersionRequest:
+    properties:
+      application_id:
+        type: string
+      id:
+        type: string
+      rule_set_id:
+        type: string
+      tenant_id:
+        type: string
+    type: object
   httptransport.ListRuleVersionsRequest:
     properties:
       application_id:
@@ -506,6 +517,35 @@ paths:
       - Bearer: []
       - PSK: []
       summary: Create an immutable draft rule version
+      tags:
+      - rule versions
+  /api/v1/rule-versions/get:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Rule version selector
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/httptransport.GetRuleVersionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httptransport.Response'
+            - properties:
+                body:
+                  $ref: '#/definitions/httptransport.RuleVersionView'
+              type: object
+      security:
+      - Bearer: []
+      - PSK: []
+      summary: Get a rule version
       tags:
       - rule versions
   /api/v1/rule-versions/list:

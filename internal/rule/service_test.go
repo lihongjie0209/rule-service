@@ -98,6 +98,10 @@ func TestServiceRuleLifecycleAndEvaluation(t *testing.T) {
 	if err != nil || !created {
 		t.Fatalf("create rule version: created=%v err=%v", created, err)
 	}
+	currentVersion, err := service.GetRuleVersion(ctx, "tenant-1", "app-1", set.ID, version.ID)
+	if err != nil || currentVersion.ID != version.ID || currentVersion.Version != version.Version {
+		t.Fatalf("get rule version: value=%+v err=%v", currentVersion, err)
+	}
 	set, version, err = service.PublishRuleVersion(ctx, "tenant-1", "app-1", set.ID, version.ID, 1, 1)
 	if err != nil {
 		t.Fatalf("publish rule version: %v", err)

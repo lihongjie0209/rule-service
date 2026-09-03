@@ -70,6 +70,7 @@ func NewServer(lc fx.Lifecycle, cfg config.Config, handler *Handler, authService
 	api.POST("/rule-versions/create", handler.CreateRuleVersion)
 	api.POST("/rule-versions/validate", handler.ValidateRuleVersion)
 	api.POST("/rule-versions/publish", handler.PublishRuleVersion)
+	api.POST("/rule-versions/get", handler.GetRuleVersion)
 	api.POST("/rule-versions/list", handler.ListRuleVersions)
 	api.POST("/rules/evaluate", handler.Evaluate)
 	api.POST("/rules/evaluate-batch", handler.BatchEvaluate)

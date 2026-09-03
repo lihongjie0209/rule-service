@@ -81,6 +81,7 @@ func ruleGRPCRequirement(enabled bool) platformauthz.GRPCResolver {
 			rulev1.RuleService_CreateRuleVersion_FullMethodName:   {Resource: "rule.version", Action: "create", Scope: principal},
 			rulev1.RuleService_ValidateRuleVersion_FullMethodName: {Resource: "rule.version", Action: "validate", Scope: principal},
 			rulev1.RuleService_PublishRuleVersion_FullMethodName:  {Resource: "rule.version", Action: "publish", Scope: principal},
+			rulev1.RuleService_GetRuleVersion_FullMethodName:      {Resource: "rule.version", Action: "read", Scope: principal},
 			rulev1.RuleService_ListRuleVersions_FullMethodName:    {Resource: "rule.version", Action: "list", Scope: principal},
 			rulev1.RuleService_Evaluate_FullMethodName:            {Resource: "rule.evaluation", Action: "execute", Scope: principal},
 			rulev1.RuleService_BatchEvaluate_FullMethodName:       {Resource: "rule.evaluation", Action: "execute", Scope: principal},

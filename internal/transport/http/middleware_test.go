@@ -77,7 +77,7 @@ func TestIdempotencyExecutionCompletesAndReplaysRuleMutation(t *testing.T) {
 
 func TestIdempotencyExecutionBypassesRuleReadsAndEvaluation(t *testing.T) {
 	t.Parallel()
-	for _, route := range []string{"/api/v1/rule-sets/get", "/api/v1/rule-sets/list", "/api/v1/rule-versions/validate", "/api/v1/rule-versions/list", "/api/v1/rules/evaluate", "/api/v1/rules/evaluate-batch"} {
+	for _, route := range []string{"/api/v1/rule-sets/get", "/api/v1/rule-sets/list", "/api/v1/rule-versions/validate", "/api/v1/rule-versions/get", "/api/v1/rule-versions/list", "/api/v1/rules/evaluate", "/api/v1/rules/evaluate-batch"} {
 		t.Run(route, func(t *testing.T) {
 			manager := &fakeIdempotencyManager{decision: idempotency.Decision{State: idempotency.StateConflict}}
 			calls := 0
@@ -104,7 +104,7 @@ func (a authorizationStub) Authorize(context.Context, platformprincipal.Principa
 
 func TestRuleHTTPRequirementCoversEveryBusinessRoute(t *testing.T) {
 	t.Parallel()
-	routes := []string{"/api/v1/rule-sets/create", "/api/v1/rule-sets/update", "/api/v1/rule-sets/get", "/api/v1/rule-sets/list", "/api/v1/rule-versions/create", "/api/v1/rule-versions/validate", "/api/v1/rule-versions/publish", "/api/v1/rule-versions/list", "/api/v1/rules/evaluate", "/api/v1/rules/evaluate-batch"}
+	routes := []string{"/api/v1/rule-sets/create", "/api/v1/rule-sets/update", "/api/v1/rule-sets/get", "/api/v1/rule-sets/list", "/api/v1/rule-versions/create", "/api/v1/rule-versions/validate", "/api/v1/rule-versions/publish", "/api/v1/rule-versions/get", "/api/v1/rule-versions/list", "/api/v1/rules/evaluate", "/api/v1/rules/evaluate-batch"}
 	for _, route := range routes {
 		requirement, ok := ruleHTTPRequirement(route)
 		if !ok || requirement.Resource == "" || requirement.Action == "" || requirement.Scope != platformauthz.ScopePrincipal {

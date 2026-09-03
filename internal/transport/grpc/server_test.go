@@ -17,7 +17,7 @@ import (
 func TestRuleGRPCRequirementCoversEveryBusinessMethod(t *testing.T) {
 	t.Parallel()
 	resolve := ruleGRPCRequirement(true)
-	methods := []string{rulev1.RuleService_CreateRuleSet_FullMethodName, rulev1.RuleService_UpdateRuleSet_FullMethodName, rulev1.RuleService_GetRuleSet_FullMethodName, rulev1.RuleService_ListRuleSets_FullMethodName, rulev1.RuleService_CreateRuleVersion_FullMethodName, rulev1.RuleService_ValidateRuleVersion_FullMethodName, rulev1.RuleService_PublishRuleVersion_FullMethodName, rulev1.RuleService_ListRuleVersions_FullMethodName, rulev1.RuleService_Evaluate_FullMethodName, rulev1.RuleService_BatchEvaluate_FullMethodName}
+	methods := []string{rulev1.RuleService_CreateRuleSet_FullMethodName, rulev1.RuleService_UpdateRuleSet_FullMethodName, rulev1.RuleService_GetRuleSet_FullMethodName, rulev1.RuleService_ListRuleSets_FullMethodName, rulev1.RuleService_CreateRuleVersion_FullMethodName, rulev1.RuleService_ValidateRuleVersion_FullMethodName, rulev1.RuleService_PublishRuleVersion_FullMethodName, rulev1.RuleService_GetRuleVersion_FullMethodName, rulev1.RuleService_ListRuleVersions_FullMethodName, rulev1.RuleService_Evaluate_FullMethodName, rulev1.RuleService_BatchEvaluate_FullMethodName}
 	for _, method := range methods {
 		requirement, ok := resolve(method)
 		if !ok || requirement.Resource == "" || requirement.Action == "" || requirement.Scope != platformauthz.ScopePrincipal {

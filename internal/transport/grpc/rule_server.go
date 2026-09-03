@@ -58,6 +58,10 @@ func (s *ruleServer) PublishRuleVersion(ctx context.Context, request *rulev1.Pub
 	ruleSet, version, err := s.service.PublishRuleVersion(ctx, request.GetTenantId(), request.GetApplicationId(), request.GetRuleSetId(), request.GetRuleVersionId(), request.GetRuleSetVersion(), request.GetRuleVersionVersion())
 	return &rulev1.PublishRuleVersionResponse{RuleSet: rule.ToProtoRuleSet(ruleSet), RuleVersion: rule.ToProtoRuleVersion(version)}, ruleError(err)
 }
+func (s *ruleServer) GetRuleVersion(ctx context.Context, request *rulev1.GetRuleVersionRequest) (*rulev1.GetRuleVersionResponse, error) {
+	value, err := s.service.GetRuleVersion(ctx, request.GetTenantId(), request.GetApplicationId(), request.GetRuleSetId(), request.GetId())
+	return &rulev1.GetRuleVersionResponse{RuleVersion: rule.ToProtoRuleVersion(value)}, ruleError(err)
+}
 func (s *ruleServer) ListRuleVersions(ctx context.Context, request *rulev1.ListRuleVersionsRequest) (*rulev1.ListRuleVersionsResponse, error) {
 	page, size := grpcPage(request.GetPage())
 	values, err := s.service.ListRuleVersions(ctx, request.GetTenantId(), request.GetApplicationId(), request.GetRuleSetId(), request.GetStatus(), page, size)

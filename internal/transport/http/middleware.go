@@ -361,6 +361,7 @@ func ruleHTTPRequirement(route string) (platformauthz.Requirement, bool) {
 		"/api/v1/rule-versions/create":   {Resource: "rule.version", Action: "create", Scope: principal},
 		"/api/v1/rule-versions/validate": {Resource: "rule.version", Action: "validate", Scope: principal},
 		"/api/v1/rule-versions/publish":  {Resource: "rule.version", Action: "publish", Scope: principal},
+		"/api/v1/rule-versions/get":      {Resource: "rule.version", Action: "read", Scope: principal},
 		"/api/v1/rule-versions/list":     {Resource: "rule.version", Action: "list", Scope: principal},
 		"/api/v1/rules/evaluate":         {Resource: "rule.evaluation", Action: "execute", Scope: principal},
 		"/api/v1/rules/evaluate-batch":   {Resource: "rule.evaluation", Action: "execute", Scope: principal},
