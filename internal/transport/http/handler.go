@@ -150,6 +150,7 @@ type CreateRuleVersionRequest struct {
 	RuleSetID      string          `json:"rule_set_id"`
 	Definition     json.RawMessage `json:"definition" swaggertype:"object"`
 	IdempotencyKey string          `json:"idempotency_key"`
+	RuleSetVersion int64           `json:"rule_set_version"`
 }
 type ValidateRuleVersionRequest struct {
 	TenantID      string          `json:"tenant_id"`
@@ -370,7 +371,7 @@ func (h *Handler) CreateRuleVersion(c *gin.Context) {
 	if !bind(c, &r) {
 		return
 	}
-	v, d, e := h.rules.CreateRuleVersion(c.Request.Context(), r.TenantID, r.ApplicationID, r.RuleSetID, string(r.Definition), r.IdempotencyKey)
+	v, d, e := h.rules.CreateRuleVersion(c.Request.Context(), r.TenantID, r.ApplicationID, r.RuleSetID, string(r.Definition), r.IdempotencyKey, r.RuleSetVersion)
 	if e != nil {
 		Fail(c, h.logger, e)
 		return

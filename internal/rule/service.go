@@ -116,7 +116,7 @@ func (s *Service) ListRuleSets(ctx context.Context, tenantID, applicationID, sta
 	return Page[RuleSet]{Items: items, Total: total, Page: page, PageSize: pageSize}, translate(err)
 }
 
-func (s *Service) CreateRuleVersion(ctx context.Context, tenantID, applicationID, ruleSetID, definitionJSON, idempotencyKey string) (RuleVersion, bool, error) {
+func (s *Service) CreateRuleVersion(ctx context.Context, tenantID, applicationID, ruleSetID, definitionJSON, idempotencyKey string, expectedRuleSetVersion int64) (RuleVersion, bool, error) {
 	actorID, err := authorize(ctx, tenantID)
 	if err != nil {
 		return RuleVersion{}, false, err
@@ -124,8 +124,8 @@ func (s *Service) CreateRuleVersion(ctx context.Context, tenantID, applicationID
 	if err := s.verifyApplication(ctx, tenantID, applicationID); err != nil {
 		return RuleVersion{}, false, err
 	}
-	if strings.TrimSpace(ruleSetID) == "" || strings.TrimSpace(idempotencyKey) == "" || len(idempotencyKey) > 191 {
-		return RuleVersion{}, false, apperror.Invalid("rule_set_id and idempotency_key are required", nil)
+	if strings.TrimSpace(ruleSetID) == "" || strings.TrimSpace(idempotencyKey) == "" || len(idempotencyKey) > 191 || expectedRuleSetVersion < 1 {
+		return RuleVersion{}, false, apperror.Invalid("rule_set_id, idempotency_key, and positive rule_set_version are required", nil)
 	}
 	compiled, issues := CompileDefinition(definitionJSON)
 	if len(issues) > 0 {
@@ -136,7 +136,7 @@ func (s *Service) CreateRuleVersion(ctx context.Context, tenantID, applicationID
 	created := false
 	err = s.transactor.Within(ctx, nil, func(tx *sqlx.Tx) error {
 		var repositoryErr error
-		value, created, repositoryErr = s.repository.CreateRuleVersion(ctx, tx, value)
+		value, created, repositoryErr = s.repository.CreateRuleVersion(ctx, tx, value, expectedRuleSetVersion)
 		return repositoryErr
 	})
 	if err == nil {

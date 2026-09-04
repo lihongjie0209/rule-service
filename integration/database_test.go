@@ -86,11 +86,11 @@ func TestRepositoryAndMigrations(t *testing.T) {
 				t.Fatalf("create rule set: %v", err)
 			}
 			definition := `{"rules":[{"name":"vip","condition":"facts.vip == true","result":{"discount":20}}],"default_result":{"discount":0}}`
-			version, created, err := service.CreateRuleVersion(actorContext, "tenant-integration", "app-integration", ruleSet.ID, definition, "version-key-1")
+			version, created, err := service.CreateRuleVersion(actorContext, "tenant-integration", "app-integration", ruleSet.ID, definition, "version-key-1", ruleSet.Version)
 			if err != nil || !created {
 				t.Fatalf("create rule version: created=%v err=%v", created, err)
 			}
-			_, duplicate, err := service.CreateRuleVersion(actorContext, "tenant-integration", "app-integration", ruleSet.ID, definition, "version-key-1")
+			_, duplicate, err := service.CreateRuleVersion(actorContext, "tenant-integration", "app-integration", ruleSet.ID, definition, "version-key-1", ruleSet.Version)
 			if err != nil || duplicate {
 				t.Fatalf("replay rule version: created=%v err=%v", duplicate, err)
 			}

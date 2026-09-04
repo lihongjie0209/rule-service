@@ -47,7 +47,7 @@ func (r *fakeRepository) GetRuleSet(_ context.Context, tenantID, applicationID, 
 func (*fakeRepository) ListRuleSets(context.Context, string, string, string, string, int, int) ([]RuleSet, int64, error) {
 	return nil, 0, nil
 }
-func (r *fakeRepository) CreateRuleVersion(_ context.Context, _ sqlx.ExtContext, value RuleVersion) (RuleVersion, bool, error) {
+func (r *fakeRepository) CreateRuleVersion(_ context.Context, _ sqlx.ExtContext, value RuleVersion, _ int64) (RuleVersion, bool, error) {
 	value.VersionNumber = 1
 	r.ruleVersion = value
 	return value, true, nil
@@ -94,7 +94,7 @@ func TestServiceRuleLifecycleAndEvaluation(t *testing.T) {
 		t.Fatalf("create rule set: %v", err)
 	}
 	definition := `{"rules":[{"name":"vip","condition":"facts.vip == true","result":{"discount":20}}],"default_result":{"discount":0}}`
-	version, created, err := service.CreateRuleVersion(ctx, "tenant-1", "app-1", set.ID, definition, "version-key-1")
+	version, created, err := service.CreateRuleVersion(ctx, "tenant-1", "app-1", set.ID, definition, "version-key-1", set.Version)
 	if err != nil || !created {
 		t.Fatalf("create rule version: created=%v err=%v", created, err)
 	}
@@ -175,6 +175,56 @@ func TestServiceRejectsApplicationWithoutTenantGrant(t *testing.T) {
 	var appErr *apperror.Error
 	if !errors.As(err, &appErr) || appErr.Code != apperror.CodeForbidden {
 		t.Fatalf("CreateRuleSet() error = %#v", err)
+	}
+}
+
+func TestServiceCreateRuleVersionRequiresRuleSetVersion(t *testing.T) {
+	t.Parallel()
+	service := &Service{repository: serviceRepository{&fakeRepository{}}, transactor: fakeTransaction{}, applications: fakeApplicationVerifier{}, now: time.Now}
+	ctx := platformprincipal.WithContext(t.Context(), platformprincipal.Principal{ID: "user-1", Type: platformprincipal.TypeUser, TenantID: "tenant-1"})
+
+	_, _, err := service.CreateRuleVersion(ctx, "tenant-1", "app-1", "set-1", `{"rules":[]}`, "key-1", 0)
+	var appErr *apperror.Error
+	if !errors.As(err, &appErr) || appErr.Code != apperror.CodeInvalidArgument {
+		t.Fatalf("CreateRuleVersion() error = %v, want invalid argument", err)
+	}
+}
+
+func TestSQLRepositoryCreateRuleVersionRejectsChangedOrDisabledRuleSet(t *testing.T) {
+	t.Parallel()
+
+	for _, test := range []struct {
+		name    string
+		version int64
+		status  string
+	}{
+		{name: "changed version", version: 2, status: "draft"},
+		{name: "disabled set", version: 1, status: "disabled"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			database, mock, err := sqlmock.New()
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = database.Close() })
+			db := sqlx.NewDb(database, "sqlmock")
+			repository := &SQLRepository{db: db}
+			value := RuleVersion{TenantID: "tenant-1", ApplicationID: "app-1", RuleSetID: "set-1", IdempotencyKey: "key-1"}
+			mock.ExpectQuery(regexp.QuoteMeta("SELECT version,status FROM rule_sets WHERE tenant_id=? AND application_id=? AND id=? FOR UPDATE")).
+				WithArgs(value.TenantID, value.ApplicationID, value.RuleSetID).
+				WillReturnRows(sqlmock.NewRows([]string{"version", "status"}).AddRow(test.version, test.status))
+			mock.ExpectQuery(regexp.QuoteMeta("SELECT "+ruleVersionColumns+" FROM rule_versions WHERE tenant_id=? AND application_id=? AND rule_set_id=? AND idempotency_key=?")).
+				WithArgs(value.TenantID, value.ApplicationID, value.RuleSetID, value.IdempotencyKey).
+				WillReturnError(sql.ErrNoRows)
+
+			_, _, err = repository.CreateRuleVersion(t.Context(), db, value, 1)
+			if !errors.Is(err, ErrStaleVersion) {
+				t.Fatalf("CreateRuleVersion() error = %v, want ErrStaleVersion", err)
+			}
+			if err := mock.ExpectationsWereMet(); err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 }
 

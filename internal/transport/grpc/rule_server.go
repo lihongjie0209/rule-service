@@ -43,7 +43,7 @@ func (s *ruleServer) ListRuleSets(ctx context.Context, request *rulev1.ListRuleS
 	return &rulev1.ListRuleSetsResponse{RuleSets: items, Page: grpcPageResult(values.Total, values.Page, values.PageSize)}, ruleError(err)
 }
 func (s *ruleServer) CreateRuleVersion(ctx context.Context, request *rulev1.CreateRuleVersionRequest) (*rulev1.CreateRuleVersionResponse, error) {
-	value, _, err := s.service.CreateRuleVersion(ctx, request.GetTenantId(), request.GetApplicationId(), request.GetRuleSetId(), request.GetDefinitionJson(), request.GetIdempotencyKey())
+	value, _, err := s.service.CreateRuleVersion(ctx, request.GetTenantId(), request.GetApplicationId(), request.GetRuleSetId(), request.GetDefinitionJson(), request.GetIdempotencyKey(), request.GetRuleSetVersion())
 	return &rulev1.CreateRuleVersionResponse{RuleVersion: rule.ToProtoRuleVersion(value)}, ruleError(err)
 }
 func (s *ruleServer) ValidateRuleVersion(ctx context.Context, request *rulev1.ValidateRuleVersionRequest) (*rulev1.ValidateRuleVersionResponse, error) {

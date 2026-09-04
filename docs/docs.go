@@ -889,6 +889,9 @@ const docTemplate = `{
                 "rule_set_id": {
                     "type": "string"
                 },
+                "rule_set_version": {
+                    "type": "integer"
+                },
                 "tenant_id": {
                     "type": "string"
                 }

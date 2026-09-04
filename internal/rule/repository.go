@@ -20,7 +20,7 @@ type Repository interface {
 	UpdateRuleSet(context.Context, sqlx.ExtContext, RuleSet, int64) error
 	GetRuleSet(context.Context, string, string, string, string) (RuleSet, error)
 	ListRuleSets(context.Context, string, string, string, string, int, int) ([]RuleSet, int64, error)
-	CreateRuleVersion(context.Context, sqlx.ExtContext, RuleVersion) (RuleVersion, bool, error)
+	CreateRuleVersion(context.Context, sqlx.ExtContext, RuleVersion, int64) (RuleVersion, bool, error)
 	GetRuleVersion(context.Context, string, string, string, string, int64) (RuleVersion, error)
 	ListRuleVersions(context.Context, string, string, string, string, int, int) ([]RuleVersion, int64, error)
 	PublishRuleVersion(context.Context, sqlx.ExtContext, RuleSet, RuleVersion, int64, int64) error
@@ -75,12 +75,15 @@ func (r *SQLRepository) ListRuleSets(ctx context.Context, tenantID, applicationI
 	return items, total, err
 }
 
-func (r *SQLRepository) CreateRuleVersion(ctx context.Context, e sqlx.ExtContext, value RuleVersion) (RuleVersion, bool, error) {
+func (r *SQLRepository) CreateRuleVersion(ctx context.Context, e sqlx.ExtContext, value RuleVersion, expectedRuleSetVersion int64) (RuleVersion, bool, error) {
 	// Serialize version allocation and idempotency lookup on the owning rule set.
 	// This prevents two concurrent requests from both missing the key and then
 	// racing on either the version number or unique idempotency constraint.
-	var ignored int64
-	if err := sqlx.GetContext(ctx, e, &ignored, r.db.Rebind("SELECT version FROM rule_sets WHERE tenant_id=? AND application_id=? AND id=? FOR UPDATE"), value.TenantID, value.ApplicationID, value.RuleSetID); err != nil {
+	var ruleSet struct {
+		Version int64  `db:"version"`
+		Status  string `db:"status"`
+	}
+	if err := sqlx.GetContext(ctx, e, &ruleSet, r.db.Rebind("SELECT version,status FROM rule_sets WHERE tenant_id=? AND application_id=? AND id=? FOR UPDATE"), value.TenantID, value.ApplicationID, value.RuleSetID); err != nil {
 		return RuleVersion{}, false, notFound(err)
 	}
 	var existing RuleVersion
@@ -93,6 +96,9 @@ func (r *SQLRepository) CreateRuleVersion(ctx context.Context, e sqlx.ExtContext
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
 		return RuleVersion{}, false, err
+	}
+	if ruleSet.Version != expectedRuleSetVersion || ruleSet.Status == "disabled" {
+		return RuleVersion{}, false, ErrStaleVersion
 	}
 	if err := sqlx.GetContext(ctx, e, &value.VersionNumber, r.db.Rebind("SELECT COALESCE(MAX(version_number),0)+1 FROM rule_versions WHERE tenant_id=? AND application_id=? AND rule_set_id=?"), value.TenantID, value.ApplicationID, value.RuleSetID); err != nil {
 		return RuleVersion{}, false, err
